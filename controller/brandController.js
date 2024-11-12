@@ -11,6 +11,10 @@ const Upc = require('../model/upc');
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
+const apikey = process.env.API_KEY
+
+
 exports.fetchbrand = async(req, res) => {
 
     try {
