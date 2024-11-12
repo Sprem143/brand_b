@@ -1,6 +1,8 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
+require('dotenv').config();
+const apikey = process.env.API_KEY
 const BrandPage = require('../model/brandpage');
 const BrandUrl = require('../model/brandurl');
 const AvailableProduct = require('../model/AvailableProduct')
@@ -11,13 +13,12 @@ const Upc = require('../model/upc');
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
-const apikey = process.env.API_KEY
-
 
 exports.fetchbrand = async(req, res) => {
-
     try {
+        await BrandPage.deleteMany();
+        await BrandUrl.deleteMany();
+
         const { url, num } = req.body
         generateurl(num, url);
         console.log(url)
@@ -60,7 +61,7 @@ exports.fetchbrand = async(req, res) => {
             console.log("calling second page")
             await handleSecondPageScraping(secondurl); // Call the second scraping function here
         }
-        let arr = await BrandUrl.find();
+        // let arr = await BrandUrl.find();
         // let len = arr.map((total, a) => total + a.length, 0);
         // console.log(len)
         res.status(200).json({ msg: "All pages's urls fetched successfully" })
@@ -73,7 +74,6 @@ exports.fetchbrand = async(req, res) => {
 // Function to handle the second page scraping
 const handleSecondPageScraping = async(urls) => {
     let index = 0;
-
     while (index < urls.length) {
         const url = urls[index]
         console.log(url);
@@ -312,7 +312,7 @@ exports.getproduct = async(req, res) => {
             }
         }
 
-        res.send({ message: "Product data fetched successfully" });
+        res.send("Product data fetched successfully");
 
     } catch (err) {
         console.error("Error:", err);
