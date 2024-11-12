@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const db = () => {
-    mongoose.connect('mongodb+srv://Prem:Prem7366@belk-brand.8rj8f.mongodb.net/?retryWrites=true&w=majority&appName=belk-brand')
+    mongoose.connect('mongodb://localhost:27017/brand')
         .then(() => {
             console.log("MongoDB connected");
         })
