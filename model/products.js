@@ -12,7 +12,8 @@ const dataSchema = new mongoose.Schema({
     discount: Number,
     onsale: Boolean,
     offerend: String,
-    url: String
+    url: String,
+    imgurl: String
 });
 
 module.exports = mongoose.model('Product', dataSchema);

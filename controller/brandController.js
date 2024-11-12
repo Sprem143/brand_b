@@ -178,18 +178,13 @@ async function fetchAndExtractVariable(html, variableName) {
 
 async function fetchProductData(html) {
     try {
-
-
-        // Load HTML into Cheerio
         const $ = cheerio.load(html);
-
         // Extract the content of the script tag containing window.product
         let productData = null;
         $('script').each((index, element) => {
             const scriptContent = $(element).html();
             const regex = /window\.product\s*=\s*({[^]*?});/;
             const match = scriptContent.match(regex);
-
             if (match) {
                 try {
                     // Parse the matched JSON-like object
@@ -263,6 +258,7 @@ const getupc = async(url) => {
             const price = data.sku_price;
             const num = data.sku_inventory;
             const onsale = data.sku_on_sale;
+            const imgurl = data.sku_image_url
             const coupon = data.product_promotedCoupon[0].cpnDiscount !== undefined ? data.product_promotedCoupon[0].cpnDiscount : null;
             const offerend = coupon === null ? null : data.product_promotedCoupon[0].endDate.slice(0, 10);
             let products = upc.map((u, index) => ({
@@ -276,7 +272,8 @@ const getupc = async(url) => {
                 size: color_size[id[index]] ? color_size[id[index]].size : null,
                 discount: onsale[index] ? 0 : Number(coupon),
                 offerend: offerend,
-                url: url
+                url: url,
+                imgurl: imgurl[index]
             }));
             // ---------removing out of stock products----------
             const filterProduct = products.filter((p) => p.quantity > 5);
@@ -359,9 +356,8 @@ exports.downloadfinalSheet = async(req, res) => {
             return {
                 'Input EAN': 'UPC' + item.UPC,
                 'ASIN': item.ASIN,
-                'Amazon link': item['Amazon link'] ? { f: `HYPERLINK("${item['Amazon link']}", "${item['Amazon link']}")` } : '',
-                'Belk link': blkItem ? { f: `HYPERLINK("${blkItem['url']}", "${blkItem['url']}")` } : '',
-                'UPC List': item['UPC List'],
+                'Amazon link': item['Amazon link'],
+                'Belk link': blkItem ? blkItem.url : '',
                 'EAN List': item['EAN List'],
                 'MPN': item.MPN,
                 'ISBN': item.ISBN,
@@ -381,11 +377,12 @@ exports.downloadfinalSheet = async(req, res) => {
                 'UPC': 'UPC' + item.UPC,
                 'Available Quantity': blkItem ? blkItem.quantity : 0,
                 'Product name': blkItem ? blkItem.name : '',
+                'Belk link': blkItem ? blkItem.url : '',
+                'Img link': blkItem ? blkItem.imgurl : '',
                 'Product Currency': 'USD',
                 'Product price': blkItem ? blkItem.price : 0,
                 'Category': '',
                 'Soldby': 'Belk',
-                'Product link': 'Update later',
                 'Size': blkItem ? blkItem.size : '',
                 'Color': blkItem ? blkItem.color : '',
                 'Any other variations': ''
