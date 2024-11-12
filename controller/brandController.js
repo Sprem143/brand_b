@@ -295,6 +295,7 @@ const getupc = async(url) => {
 
 exports.getproduct = async(req, res) => {
     try {
+        await Product.deleteMany();
         const urlarray = await BrandUrl.find({});
         for (const urlarr of urlarray) {
             const urls = urlarr.producturl;
@@ -333,6 +334,7 @@ exports.uploaddata = async(req, res) => {
         const sheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(sheet);
         const filteredData = data.filter(row => row.ASIN !== '-');
+        await AvailableProduct.deleteMany();
         await AvailableProduct.insertMany(filteredData);
         res.status(200).send("File uploaded successfully")
     } catch (err) {
