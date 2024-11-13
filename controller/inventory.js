@@ -47,29 +47,36 @@ exports.autofetchdata = async(req, res) => {
         const upc = utagData.sku_upc;
         const quantity = utagData.sku_inventory;
         const imgurl = utagData.sku_image_url;
-        const offer = utagData.product_promotedCoupon[0];
         const onsale = utagData.sku_on_sale;
-        const offerprice = offer.cpnDiscount !== undefined ? offer.cpnDiscount : null
-        const offerend = offer.endDate !== undefined ? offer.endDate : null
+        const coupon = utagData.product_promotedCoupon[0].cpnDiscount !== undefined ? utagData.product_promotedCoupon[0].cpnDiscount : null;
         var urlProduct = upc.map((u, index) => {
-                return { upc: u, price: price[index], quantity: quantity[index], imgurl: imgurl[index], onsale: onsale[index] }
+                return {
+                    upc: u,
+                    price: price[index],
+                    quantity: quantity[index],
+                    imgurl: imgurl[index],
+                    onsale: onsale[index]
+                }
             })
+            // console.log(urlProduct)
             // -----filter product-----
         let filterData = datas.map((data) => {
-            const matchedProduct = urlProduct.find((p) => p.upc === data.upc);
+            const matchedProduct = urlProduct.find((p) => p.upc === data['Input UPC'].replace('UPC', ''));
             if (matchedProduct) {
+                console.log(matchedProduct)
                 return {
-                    url: data['Vendor URL'],
-                    quantity: matchedProduct.quantity,
-                    imgurl: matchedProduct.imgurl,
-                    upc: data.upc,
-                    clrsize: data.Size,
-                    newPrice: matchedProduct.price,
-                    oldPrice: data['Product Cost'],
-                    available: data.available,
-                    offer: offerprice,
-                    onsale: matchedProduct.onsale,
-                    offerend: offerend
+                    'Product link': data['Product link'],
+                    'Current Quantity': matchedProduct.quantity,
+                    'Product price': data['Product price'],
+                    'Current Price': Number(coupon) > 0 && Boolean(matchedProduct.onsale) === false ? matchedProduct.price * (1 - (coupon / 100)) : matchedProduct.price,
+                    'Image link': matchedProduct.imgurl,
+                    'Input UPC': data['Input UPC'],
+                    'Fulfillment': data['Fulfillment'],
+                    'Amazon Fees%': data['Amazon Fees%'],
+                    'Amazon link': data['Amazon link'],
+                    'Shipping Template': data['Shipping Template'],
+                    'Min Profit': data['Min Profit'],
+                    ASIN: data.ASIN
                 };
             }
             return null;

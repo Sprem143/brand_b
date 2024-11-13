@@ -1,15 +1,21 @@
 const mongoose = require('mongoose')
 
 const dataSchema = new mongoose.Schema({
-    'Amazon Title': String,
-    'Vendor URL': String,
-    'Product Cost': Number,
-    Size: String,
-    upc: {
+    'Input UPC': {
         unique: true,
         type: String
     },
-    available: String
+    'Vendor URL': String,
+    ASIN: String,
+    'Product price': Number,
+    'Amazon link': String,
+    'Image link': String,
+    'Available Quantity': Number,
+    'Product link': String,
+    'Fulfillment': Number,
+    'Amazon Fees%': String,
+    'Shipping Template': String,
+    'Min Profit': String
 
 });
 module.exports = mongoose.model('InvProduct', dataSchema);

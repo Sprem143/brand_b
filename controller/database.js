@@ -157,26 +157,26 @@ exports.uploadinvdata = async(req, res) => {
     if (!file) {
         return res.status(400).send('No file uploaded.');
     }
-    console.log("function called")
-        // Load the uploaded Excel file
+    // Load the uploaded Excel file
     const workbook = xlsx.readFile(file.path);
-    const sheetName = workbook.SheetNames[2]; // Read first sheet
+    const sheetName = workbook.SheetNames[0]; // Read first sheet
     const sheet = workbook.Sheets[sheetName];
 
     // Convert the sheet to JSON
     const data1 = xlsx.utils.sheet_to_json(sheet);
+
     const data = data1.filter((d) => d['ASIN'] !== undefined)
     InvProduct.insertMany(data)
         .then(async() => {
             const uniqueUpc = data
-                .map(item => item.upc) // Extract only the URLs
+                .map(item => item['Input UPC'].replace("UPC", "")) // Extract only the URLs
                 .filter((upc, index, self) => self.indexOf(upc) === index);
             var upcs = new InvUpc({ upc: uniqueUpc });
             await upcs.save();
         })
         .then(async() => {
             const uniqueUrls = data
-                .map(item => item['Vendor URL'].split(".html")[0] + ".html")
+                .map(item => item['Product link'].split(".html")[0] + ".html")
                 .filter((url, index, self) => self.indexOf(url) === index);
             var urls = new InvUrl({ url: uniqueUrls });
             // var visitedurl = new VisitedUrl({ url: uniqueUrls });
@@ -205,11 +205,50 @@ exports.getinvlinks = async(req, res) => {
 }
 
 exports.getinvproduct = async(req, res) => {
-    try {
-        const invProduct = await AutoFetchData.find();
-        res.status(200).send(invProduct)
-    } catch (err) {
-        console.log(err);
-        res.send(err)
+        try {
+            const invProduct = await AutoFetchData.find();
+            res.status(200).send(invProduct)
+        } catch (err) {
+            console.log(err);
+            res.send(err)
+        }
     }
-}
+    // ------down invontary updata sheet----------
+exports.downloadInvSheet = async(req, res) => {
+    try {
+        const data = await AutoFetchData.find();
+        const jsondata = data.map((item) => {
+            return {
+                'Input UPC': item['Input UPC'],
+                ASIN: item['ASIN'],
+                'Amazon link': item['Amazon link'],
+                SKU: item['SKU'],
+                'Image link': item['Image link'],
+                'Available Quantity': item['Available Quantity'],
+                'Product price': item['Product price'],
+                'Product link': item['Product link'],
+                'Fulfillment': item['Fulfillment'],
+                'Amazon Fees%': item['Amazon Fees%'],
+                'Shipping Template': item['Shipping Template'],
+                'Min Profit': item['Min Profit'],
+                'Current Price': item['Current Price'],
+                'Current Quantity': item['Current Quantity']
+            }
+        });
+        const worksheet = xlsx.utils.json_to_sheet(jsondata);
+        const workbook = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
+        const filePath = path.join(__dirname, 'Updated_inventory.xlsx');
+        xlsx.writeFile(workbook, filePath);
+        res.download(filePath, (err) => {
+            if (err) {
+                console.error('Error sending file:', err);
+            }
+            fs.unlinkSync(filePath);
+        });
+
+    } catch (err) {
+        console.error('Error generating Excel sheet:', err);
+        res.status(500).send('An error occurred while generating the Excel file.');
+    }
+};

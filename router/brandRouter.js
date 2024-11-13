@@ -5,10 +5,11 @@ const upload = multer({ dest: 'uploads/' });
 
 const { autofetchdata } = require('../controller/inventory');
 const { fetchbrand, getproduct, } = require('../controller/brandController');
-const { downloadfinalSheet, downloadExcel, uploaddata, sendproductsurl, uploadinvdata, getinvlinks, getinvproduct } = require('../controller/database');
+const { downloadInvSheet, downloadfinalSheet, downloadExcel, uploaddata, sendproductsurl, uploadinvdata, getinvlinks, getinvproduct } = require('../controller/database');
 router.post('/fetchbrand', fetchbrand);
 router.get('/scrapproduct', getproduct);
 router.get('/download-excel', downloadExcel);
+router.get('/download-inventory', downloadInvSheet);
 router.get('/downloadfinalSheet', downloadfinalSheet);
 router.get('/getproducturl', sendproductsurl);
 router.get('/getinvurl', getinvlinks);
