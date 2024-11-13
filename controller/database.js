@@ -153,6 +153,11 @@ exports.sendproductsurl = async(req, res) => {
 // ----------- upload file for invontory update-------
 
 exports.uploadinvdata = async(req, res) => {
+    await InvProduct.deleteMany();
+    await InvUrl.deleteMany();
+    await InvUpc.deleteMany();
+    await AutoFetchData.deleteMany();
+
     const file = req.file;
     if (!file) {
         return res.status(400).send('No file uploaded.');

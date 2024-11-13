@@ -2,11 +2,11 @@ const mongoose = require('mongoose')
 
 const dataSchema = new mongoose.Schema({
     'Input UPC': {
-        unique: true,
         type: String
     },
     'Vendor URL': String,
     ASIN: String,
+    SKU: String,
     'Product price': Number,
     'Amazon link': String,
     'Image link': String,

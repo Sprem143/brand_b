@@ -6,6 +6,7 @@ const autofetchdataSchema = new mongoose.Schema({
     },
     'Vendor URL': String,
     ASIN: String,
+    SKU: String,
     'Product price': String,
     'Amazon link': String,
     'Image link': String,
