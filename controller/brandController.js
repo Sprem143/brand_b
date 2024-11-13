@@ -10,9 +10,7 @@ const axios = require('axios');
 const cheerio = require('cheerio')
 const Product = require('../model/products');
 const Upc = require('../model/upc');
-const xlsx = require('xlsx')
-const fs = require('fs');
-const path = require('path');
+
 
 exports.fetchbrand = async(req, res) => {
     try {
@@ -131,7 +129,6 @@ const generateurl = async(num, url) => {
 // --------start scrapping upc--------
 async function fetchAndExtractVariable(html, variableName) {
     const $ = cheerio.load(html);
-
     let variableValue;
     $('script').each((index, script) => {
         const scriptContent = $(script).html();
@@ -140,14 +137,12 @@ async function fetchAndExtractVariable(html, variableName) {
 
         if (match) {
             try {
-                // Parse the JSON object from the matched variable
                 variableValue = JSON.parse(match[1]);
             } catch (error) {
                 console.error("Failed to parse JSON:", error);
             }
         }
     });
-
     return variableValue;
 }
 

@@ -1,18 +1,19 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
-require('dotenv').config();
-const apikey = process.env.API_KEY
-const BrandPage = require('../model/brandpage');
 const BrandUrl = require('../model/brandurl');
-const AvailableProduct = require('../model/AvailableProduct')
-const axios = require('axios');
-const cheerio = require('cheerio')
+const AvailableProduct = require('../model/AvailableProduct');
+const FinalProduct = require('../model/finalProduct')
 const Product = require('../model/products');
+const InvProduct = require('../model/invProduct');
+const InvUpc = require('../model/invUpc');
+const InvUrl = require('../model/invUrl');
+const AutoFetchData = require('../model/autofetchdata')
 const Upc = require('../model/upc');
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
+const invProduct = require('../model/invProduct');
 
 // ---------download upc list scrapped from brand url----------
 exports.downloadExcel = async(req, res) => {
@@ -76,7 +77,6 @@ exports.downloadfinalSheet = async(req, res) => {
             // Filter and map data to the desired format
         const jsondata = amz.map((item) => {
             const blkItem = blkMap.get(item.UPC);
-
             return {
                 'Input EAN': 'UPC' + item.UPC,
                 'ASIN': item.ASIN,
@@ -114,7 +114,7 @@ exports.downloadfinalSheet = async(req, res) => {
         });
         // ----------filter jsondata---------
         const newJson = jsondata.filter((json) => json['Product price'] > 0)
-            // Create and write to Excel file
+        FinalProduct.insertMany(newJson)
         const worksheet = xlsx.utils.json_to_sheet(newJson);
         const workbook = xlsx.utils.book_new();
         xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
@@ -147,5 +147,69 @@ exports.sendproductsurl = async(req, res) => {
     } catch (err) {
         console.log(err);
         res.status(500).send(err);
+    }
+}
+
+// ----------- upload file for invontory update-------
+
+exports.uploadinvdata = async(req, res) => {
+    const file = req.file;
+    if (!file) {
+        return res.status(400).send('No file uploaded.');
+    }
+    console.log("function called")
+        // Load the uploaded Excel file
+    const workbook = xlsx.readFile(file.path);
+    const sheetName = workbook.SheetNames[2]; // Read first sheet
+    const sheet = workbook.Sheets[sheetName];
+
+    // Convert the sheet to JSON
+    const data1 = xlsx.utils.sheet_to_json(sheet);
+    const data = data1.filter((d) => d['ASIN'] !== undefined)
+    InvProduct.insertMany(data)
+        .then(async() => {
+            const uniqueUpc = data
+                .map(item => item.upc) // Extract only the URLs
+                .filter((upc, index, self) => self.indexOf(upc) === index);
+            var upcs = new InvUpc({ upc: uniqueUpc });
+            await upcs.save();
+        })
+        .then(async() => {
+            const uniqueUrls = data
+                .map(item => item['Vendor URL'].split(".html")[0] + ".html")
+                .filter((url, index, self) => self.indexOf(url) === index);
+            var urls = new InvUrl({ url: uniqueUrls });
+            // var visitedurl = new VisitedUrl({ url: uniqueUrls });
+            await urls.save();
+            // await visitedurl.save();
+            res.status(200).json({ msg: 'Data successfully uploaded' });
+        })
+        .catch(err => {
+            console.error('Error saving data to MongoDB:', err);
+            res.status(500).json({ msg: 'Error saving data to MongoDB' });
+        });
+
+};
+
+// ------send inventory products links to home page---
+exports.getinvlinks = async(req, res) => {
+    try {
+
+        let result = await InvUrl.find();
+        //   let totalProduct= await product.find();
+        //   let notp= totalProduct.length;
+        res.status(200).json({ links: result })
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+exports.getinvproduct = async(req, res) => {
+    try {
+        const invProduct = await AutoFetchData.find();
+        res.status(200).send(invProduct)
+    } catch (err) {
+        console.log(err);
+        res.send(err)
     }
 }
