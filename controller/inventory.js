@@ -1,9 +1,11 @@
 const AutoFetchData = require('../model/autofetchdata')
-const InvProduct = require('../model/invProduct')
+const InvProduct = require('../model/invProduct');
+const Serial = require('../model/serial')
 require('dotenv').config();
 const axios = require('axios');
 const cheerio = require('cheerio');
 const apikey = process.env.API_KEY
+
 
 
 async function fetchAndExtractVariable(html, variableName) {
@@ -43,7 +45,9 @@ exports.autofetchdata = async(req, res) => {
         });
         const html = response.data;
         const utagData = await fetchAndExtractVariable(html, 'utag_data');
-
+        if (utagData.sku_inventory.length == 1 && utagData.sku_inventory[0] === '0') {
+            return res.status(200).send(true);
+        }
         const price = utagData.sku_price;
         const upc = utagData.sku_upc;
         const quantity = utagData.sku_inventory;

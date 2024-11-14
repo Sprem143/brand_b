@@ -5,6 +5,7 @@ const BrandUrl = require('../model/brandurl');
 const AvailableProduct = require('../model/AvailableProduct');
 const FinalProduct = require('../model/finalProduct')
 const Product = require('../model/products');
+const Serial = require('../model/serial')
 const InvProduct = require('../model/invProduct');
 const InvUpc = require('../model/invUpc');
 const InvUrl = require('../model/invUrl');
@@ -257,3 +258,30 @@ exports.downloadInvSheet = async(req, res) => {
         res.status(500).send('An error occurred while generating the Excel file.');
     }
 };
+
+// --------update serial number----------
+exports.getserialnumber = async(req, res) => {
+    try {
+        const num = await Serial.find();
+        console.log(num)
+        const sn = num[0];
+        res.status(200).send(sn)
+    } catch (err) {
+        console.log(err);
+        res.status(500).send(err);
+    }
+};
+
+exports.setindex = async(req, res) => {
+    const num = req.body.start_index
+    Serial.findOneAndUpdate({}, { start_index: num }, { new: true })
+        .then(updatedDoc => {
+            if (updatedDoc) {
+                console.log("Document updated:", updatedDoc);
+                res.status(200).send(true)
+            }
+        })
+        .catch(error => {
+            console.error("Error updating document:", error);
+        });
+}

@@ -10,7 +10,13 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 10000;
 
-app.use(cors({ origin: 'https://belk-brand-prem.vercel.app' }));
+const corsOptions = {
+    origin: 'https://belk-brand-prem.vercel.app',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/', router);
 
