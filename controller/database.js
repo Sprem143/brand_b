@@ -9,7 +9,7 @@ const Serial = require('../model/serial')
 const Serial2 = require('../model/serial2')
 const InvProduct = require('../model/invProduct');
 const InvUpc = require('../model/invUpc');
-const InvUrl = require('../model/invUrl');
+
 const InvUrl1 = require('../model/invUrl1');
 const InvUrl2 = require('../model/invUrl2');
 const AutoFetchData = require('../model/autofetchdata')
@@ -159,7 +159,6 @@ exports.sendproductsurl = async(req, res) => {
 
 exports.uploadinvdata = async(req, res) => {
     await InvProduct.deleteMany();
-    await InvUrl.deleteMany();
     await InvUrl1.deleteMany();
     await InvUrl2.deleteMany();
     await InvUpc.deleteMany();
@@ -192,23 +191,12 @@ exports.uploadinvdata = async(req, res) => {
                 .filter((url, index, self) => self.indexOf(url) === index);
 
             const middleIndex = Math.ceil(uniqueUrls.length / 2);
-            var urls = new InvUrl({ url: uniqueUrls });
-            await urls.save()
-                .then(async() => {
-                    const firstHalf = uniqueUrls.slice(0, middleIndex);
-                    console.log(firstHalf)
-                    var urls1 = new InvUrl1({ url: firstHalf });
-                    let result = await urls1.save();
-                    console.log(result)
-                }).then(async() => {
-                    const secondHalf = uniqueUrls.slice(middleIndex);
-                    var urls2 = new InvUrl2({ url: secondHalf });
-                    await urls2.save();
-                })
-                // var visitedurl = new VisitedUrl({ url: uniqueUrls });
-
-
-            // await visitedurl.save();
+            const firstHalf = uniqueUrls.slice(0, middleIndex);
+            var urls1 = new InvUrl1({ url: firstHalf });
+            await urls1.save();
+            const secondHalf = uniqueUrls.slice(middleIndex);
+            var urls2 = new InvUrl2({ url: secondHalf });
+            await urls2.save();
             res.status(200).json({ msg: 'Data successfully uploaded' });
         })
         .catch(err => {
@@ -299,7 +287,7 @@ exports.setindex = async(req, res) => {
     Serial.findOneAndUpdate({}, { start_index: num }, { new: true })
         .then(updatedDoc => {
             if (updatedDoc) {
-                res.status(200).send(true)
+                res.status(200).json({ status: true, index: num })
             }
         })
         .catch(error => {
@@ -312,7 +300,7 @@ exports.setindex2 = async(req, res) => {
     serial2.findOneAndUpdate({}, { start_index: num }, { new: true })
         .then(updatedDoc => {
             if (updatedDoc) {
-                res.status(200).send(true)
+                res.status(200).json({ status: true, index: num })
             }
         })
         .catch(error => {
