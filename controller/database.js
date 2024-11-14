@@ -6,15 +6,19 @@ const AvailableProduct = require('../model/AvailableProduct');
 const FinalProduct = require('../model/finalProduct')
 const Product = require('../model/products');
 const Serial = require('../model/serial')
+const Serial2 = require('../model/serial2')
 const InvProduct = require('../model/invProduct');
 const InvUpc = require('../model/invUpc');
 const InvUrl = require('../model/invUrl');
+const InvUrl1 = require('../model/invUrl1');
+const InvUrl2 = require('../model/invUrl2');
 const AutoFetchData = require('../model/autofetchdata')
 const Upc = require('../model/upc');
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
 const invProduct = require('../model/invProduct');
+const serial2 = require('../model/serial2');
 
 // ---------download upc list scrapped from brand url----------
 exports.downloadExcel = async(req, res) => {
@@ -156,6 +160,8 @@ exports.sendproductsurl = async(req, res) => {
 exports.uploadinvdata = async(req, res) => {
     await InvProduct.deleteMany();
     await InvUrl.deleteMany();
+    await InvUrl1.deleteMany();
+    await InvUrl2.deleteMany();
     await InvUpc.deleteMany();
     await AutoFetchData.deleteMany();
 
@@ -184,9 +190,24 @@ exports.uploadinvdata = async(req, res) => {
             const uniqueUrls = data
                 .map(item => item['Product link'].split(".html")[0] + ".html")
                 .filter((url, index, self) => self.indexOf(url) === index);
+
+            const middleIndex = Math.ceil(uniqueUrls.length / 2);
             var urls = new InvUrl({ url: uniqueUrls });
-            // var visitedurl = new VisitedUrl({ url: uniqueUrls });
-            await urls.save();
+            await urls.save()
+                .then(async() => {
+                    const firstHalf = uniqueUrls.slice(0, middleIndex);
+                    console.log(firstHalf)
+                    var urls1 = new InvUrl1({ url: firstHalf });
+                    let result = await urls1.save();
+                    console.log(result)
+                }).then(async() => {
+                    const secondHalf = uniqueUrls.slice(middleIndex);
+                    var urls2 = new InvUrl2({ url: secondHalf });
+                    await urls2.save();
+                })
+                // var visitedurl = new VisitedUrl({ url: uniqueUrls });
+
+
             // await visitedurl.save();
             res.status(200).json({ msg: 'Data successfully uploaded' });
         })
@@ -201,10 +222,10 @@ exports.uploadinvdata = async(req, res) => {
 exports.getinvlinks = async(req, res) => {
     try {
 
-        let result = await InvUrl.find();
-        //   let totalProduct= await product.find();
-        //   let notp= totalProduct.length;
-        res.status(200).json({ links: result })
+        let result1 = await InvUrl1.find();
+        let result2 = await InvUrl2.find();
+
+        res.status(200).json({ links1: result1, links2: result2 })
     } catch (err) {
         console.log(err);
     }
@@ -263,9 +284,10 @@ exports.downloadInvSheet = async(req, res) => {
 exports.getserialnumber = async(req, res) => {
     try {
         const num = await Serial.find();
-        console.log(num)
-        const sn = num[0];
-        res.status(200).send(sn)
+        const num2 = await Serial2.find();
+        const sn1 = num[0];
+        const sn2 = num2[0];
+        res.status(200).json({ startIndex1: sn1, startIndex2: sn2 })
     } catch (err) {
         console.log(err);
         res.status(500).send(err);
@@ -277,7 +299,19 @@ exports.setindex = async(req, res) => {
     Serial.findOneAndUpdate({}, { start_index: num }, { new: true })
         .then(updatedDoc => {
             if (updatedDoc) {
-                console.log("Document updated:", updatedDoc);
+                res.status(200).send(true)
+            }
+        })
+        .catch(error => {
+            console.error("Error updating document:", error);
+        });
+}
+
+exports.setindex2 = async(req, res) => {
+    const num = req.body.start_index
+    serial2.findOneAndUpdate({}, { start_index: num }, { new: true })
+        .then(updatedDoc => {
+            if (updatedDoc) {
                 res.status(200).send(true)
             }
         })
