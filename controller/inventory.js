@@ -1,5 +1,6 @@
 const AutoFetchData = require('../model/autofetchdata')
 const InvProduct = require('../model/invProduct');
+const invUrl1 = require('../model/invUrl1');
 const Serial = require('../model/serial')
 require('dotenv').config();
 const axios = require('axios');
@@ -88,6 +89,7 @@ exports.autofetchdata = async(req, res) => {
         console.log(filterData.length)
         let r = await AutoFetchData.insertMany(filterData)
         if (r) {
+
             res.status(200).send(true);
         }
     } catch (error) {

@@ -6,7 +6,6 @@ const AvailableProduct = require('../model/AvailableProduct');
 const FinalProduct = require('../model/finalProduct')
 const Product = require('../model/products');
 const Serial = require('../model/serial')
-const Serial2 = require('../model/serial2')
 const InvProduct = require('../model/invProduct');
 const InvUpc = require('../model/invUpc');
 
@@ -18,7 +17,6 @@ const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
 const invProduct = require('../model/invProduct');
-const serial2 = require('../model/serial2');
 
 // ---------download upc list scrapped from brand url----------
 exports.downloadExcel = async(req, res) => {
@@ -272,10 +270,7 @@ exports.downloadInvSheet = async(req, res) => {
 exports.getserialnumber = async(req, res) => {
     try {
         const num = await Serial.find();
-        const num2 = await Serial2.find();
-        const sn1 = num[0];
-        const sn2 = num2[0];
-        res.status(200).json({ startIndex1: sn1, startIndex2: sn2 })
+        res.status(200).send(num[0])
     } catch (err) {
         console.log(err);
         res.status(500).send(err);
@@ -284,7 +279,7 @@ exports.getserialnumber = async(req, res) => {
 
 exports.setindex = async(req, res) => {
     const num = req.body.start_index
-    Serial.findOneAndUpdate({}, { start_index: num }, { new: true })
+    Serial.findOneAndUpdate({}, { start_index1: num }, { new: true })
         .then(updatedDoc => {
             if (updatedDoc) {
                 res.status(200).json({ status: true, index: num })
@@ -297,7 +292,33 @@ exports.setindex = async(req, res) => {
 
 exports.setindex2 = async(req, res) => {
     const num = req.body.start_index
-    serial2.findOneAndUpdate({}, { start_index: num }, { new: true })
+    Serial.findOneAndUpdate({}, { start_index2: num }, { new: true })
+        .then(updatedDoc => {
+            if (updatedDoc) {
+                res.status(200).json({ status: true, index: num })
+            }
+        })
+        .catch(error => {
+            console.error("Error updating document:", error);
+        });
+}
+
+exports.setindex3 = async(req, res) => {
+    const num = req.body.start_index
+    Serial.findOneAndUpdate({}, { start_index3: num }, { new: true })
+        .then(updatedDoc => {
+            if (updatedDoc) {
+                res.status(200).json({ status: true, index: num })
+            }
+        })
+        .catch(error => {
+            console.error("Error updating document:", error);
+        });
+}
+
+exports.setindex4 = async(req, res) => {
+    const num = req.body.start_index
+    Serial.findOneAndUpdate({}, { start_index4: num }, { new: true })
         .then(updatedDoc => {
             if (updatedDoc) {
                 res.status(200).json({ status: true, index: num })
