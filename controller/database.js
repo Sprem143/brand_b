@@ -156,14 +156,15 @@ exports.sendproductsurl = async(req, res) => {
 }
 
 // ----------- upload file for invontory update-------
-const divideArray1 = (arr) => {
+const divideArray1 = async(arr) => {
     const middleIndex = Math.ceil(arr.length / 2);
     const firstHalf = arr.slice(0, middleIndex);
     var urls1 = new InvUrl1({ url: firstHalf });
-    urls1.save();
+    await urls1.save();
     const secondHalf = arr.slice(middleIndex);
     var urls2 = new InvUrl2({ url: secondHalf });
-    urls2.save();
+    await urls2.save();
+    return true
 }
 
 const divideArray2 = async(arr) => {
@@ -218,10 +219,10 @@ exports.uploadinvdata = async(req, res) => {
 
             const middleIndex = Math.ceil(uniqueUrls.length / 2);
             const firstHalf = uniqueUrls.slice(0, middleIndex);
-            divideArray1(firstHalf)
+            let succ1 = divideArray1(firstHalf)
             const secondHalf = uniqueUrls.slice(middleIndex);
-            let succ = await divideArray2(secondHalf);
-            if (succ) {
+            let succ2 = await divideArray2(secondHalf);
+            if (succ1 & succ2) {
                 res.status(200).json({ msg: 'Data successfully uploaded' });
             }
         })
