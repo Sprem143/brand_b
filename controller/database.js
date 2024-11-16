@@ -181,6 +181,8 @@ exports.uploadinvdata = async(req, res) => {
     await InvProduct.deleteMany();
     await InvUrl1.deleteMany();
     await InvUrl2.deleteMany();
+    await InvUrl3.deleteMany();
+    await InvUrl4.deleteMany();
     await InvUpc.deleteMany();
     await AutoFetchData.deleteMany();
     await Serial.findOneAndUpdate({}, { start_index1: 0 }, { new: true })
