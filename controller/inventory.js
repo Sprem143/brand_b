@@ -158,7 +158,6 @@ exports.autofetchdata = async(req, res) => {
         console.log(filterData.length)
         let r = await AutoFetchData.insertMany(filterData)
         if (r) {
-            console.timeEnd();
             res.status(200).send(true);
         }
     } catch (error) {

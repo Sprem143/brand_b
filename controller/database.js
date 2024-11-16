@@ -11,6 +11,8 @@ const InvUpc = require('../model/invUpc');
 
 const InvUrl1 = require('../model/invUrl1');
 const InvUrl2 = require('../model/invUrl2');
+const InvUrl3 = require('../model/invUrl3');
+const InvUrl4 = require('../model/invUrl4');
 const AutoFetchData = require('../model/autofetchdata')
 const Upc = require('../model/upc');
 const xlsx = require('xlsx')
@@ -154,6 +156,26 @@ exports.sendproductsurl = async(req, res) => {
 }
 
 // ----------- upload file for invontory update-------
+const divideArray1 = (arr) => {
+    const middleIndex = Math.ceil(arr.length / 2);
+    const firstHalf = arr.slice(0, middleIndex);
+    var urls1 = new InvUrl1({ url: firstHalf });
+    urls1.save();
+    const secondHalf = arr.slice(middleIndex);
+    var urls2 = new InvUrl2({ url: secondHalf });
+    urls2.save();
+}
+
+const divideArray2 = async(arr) => {
+    const middleIndex = Math.ceil(arr.length / 2);
+    const firstHalf = arr.slice(0, middleIndex);
+    var urls3 = await new InvUrl3({ url: firstHalf });
+    urls3.save();
+    const secondHalf = arr.slice(middleIndex);
+    var urls4 = new InvUrl4({ url: secondHalf });
+    await urls4.save();
+    return true;
+}
 
 exports.uploadinvdata = async(req, res) => {
     await InvProduct.deleteMany();
@@ -161,6 +183,10 @@ exports.uploadinvdata = async(req, res) => {
     await InvUrl2.deleteMany();
     await InvUpc.deleteMany();
     await AutoFetchData.deleteMany();
+    await Serial.findOneAndUpdate({}, { start_index1: 0 }, { new: true })
+    await Serial.findOneAndUpdate({}, { start_index2: 0 }, { new: true })
+    await Serial.findOneAndUpdate({}, { start_index3: 0 }, { new: true })
+    await Serial.findOneAndUpdate({}, { start_index4: 0 }, { new: true })
 
     const file = req.file;
     if (!file) {
@@ -190,12 +216,12 @@ exports.uploadinvdata = async(req, res) => {
 
             const middleIndex = Math.ceil(uniqueUrls.length / 2);
             const firstHalf = uniqueUrls.slice(0, middleIndex);
-            var urls1 = new InvUrl1({ url: firstHalf });
-            await urls1.save();
+            divideArray1(firstHalf)
             const secondHalf = uniqueUrls.slice(middleIndex);
-            var urls2 = new InvUrl2({ url: secondHalf });
-            await urls2.save();
-            res.status(200).json({ msg: 'Data successfully uploaded' });
+            let succ = await divideArray2(secondHalf);
+            if (succ) {
+                res.status(200).json({ msg: 'Data successfully uploaded' });
+            }
         })
         .catch(err => {
             console.error('Error saving data to MongoDB:', err);
@@ -210,8 +236,10 @@ exports.getinvlinks = async(req, res) => {
 
         let result1 = await InvUrl1.find();
         let result2 = await InvUrl2.find();
+        let result3 = await InvUrl3.find();
+        let result4 = await InvUrl4.find();
 
-        res.status(200).json({ links1: result1, links2: result2 })
+        res.status(200).json({ links1: result1, links2: result2, links3: result3, links4: result4 })
     } catch (err) {
         console.log(err);
     }
