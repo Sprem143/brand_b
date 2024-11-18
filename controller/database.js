@@ -1,6 +1,3 @@
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
 const BrandUrl = require('../model/brandurl');
 const AvailableProduct = require('../model/AvailableProduct');
 const FinalProduct = require('../model/finalProduct')
@@ -8,18 +5,19 @@ const Product = require('../model/products');
 const Serial = require('../model/serial')
 const InvProduct = require('../model/invProduct');
 const InvUpc = require('../model/invUpc');
-
 const InvUrl1 = require('../model/invUrl1');
 const InvUrl2 = require('../model/invUrl2');
 const InvUrl3 = require('../model/invUrl3');
 const InvUrl4 = require('../model/invUrl4');
+const InvUrl5 = require('../model/invUrl5');
+const InvUrl6 = require('../model/invUrl6');
+const InvUrl7 = require('../model/invUrl7');
+const InvUrl8 = require('../model/invUrl8');
 const AutoFetchData = require('../model/autofetchdata')
 const Upc = require('../model/upc');
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
-const invProduct = require('../model/invProduct');
-
 // ---------download upc list scrapped from brand url----------
 exports.downloadExcel = async(req, res) => {
     try {
@@ -156,27 +154,111 @@ exports.sendproductsurl = async(req, res) => {
 }
 
 // ----------- upload file for invontory update-------
-const divideArray1 = async(arr) => {
+const donetwo = async(arr) => {
+    if (arr.length === 0) return;
+    if (arr.length === 1) {
+        ar1 = new InvUrl1({ url: arr });
+        await ar1.save();
+        return true;
+    }
     const middleIndex = Math.ceil(arr.length / 2);
     const firstHalf = arr.slice(0, middleIndex);
     var urls1 = new InvUrl1({ url: firstHalf });
-    await urls1.save();
-    const secondHalf = arr.slice(middleIndex);
-    var urls2 = new InvUrl2({ url: secondHalf });
-    await urls2.save();
-    return true
-}
+    urls1.save();
+    if (middleIndex < arr.length) {
+        const secondHalf = arr.slice(middleIndex);
+        var urls2 = new InvUrl2({ url: secondHalf });
+        urls2.save();
+    }
+};
 
-const divideArray2 = async(arr) => {
+const dthreefour = async(arr) => {
+    if (arr.length === 0) return;
+    if (arr.length === 1) {
+        ar1 = new InvUrl3({ url: arr });
+        await ar1.save();
+        return true;
+    }
     const middleIndex = Math.ceil(arr.length / 2);
     const firstHalf = arr.slice(0, middleIndex);
-    var urls3 = await new InvUrl3({ url: firstHalf });
+    var urls3 = new InvUrl3({ url: firstHalf });
     urls3.save();
+    if (middleIndex < arr.length) {
+        const secondHalf = arr.slice(middleIndex);
+        var urls4 = new InvUrl4({ url: secondHalf });
+        urls4.save();
+    }
+};
+
+const dfivesix = async(arr) => {
+    console.log('fivesxi', arr.length)
+    if (arr.length === 0) return;
+    if (arr.length === 1) {
+        ar1 = new InvUrl5({ url: arr });
+        await ar1.save();
+        return true;
+    }
+    const middleIndex = Math.ceil(arr.length / 2);
+    const firstHalf = arr.slice(0, middleIndex);
+    var urls3 = new InvUrl5({ url: firstHalf });
+    urls3.save();
+    if (middleIndex < arr.length) {
+        const secondHalf = arr.slice(middleIndex);
+        var urls6 = new InvUrl6({ url: secondHalf });
+        urls6.save();
+    }
+};
+
+const dseveneight = async(arr) => {
+    console.log('seveneight', arr.length)
+    if (arr.length === 0) return;
+    if (arr.length === 1) {
+        ar1 = new InvUrl7({ url: arr });
+        await ar1.save();
+        return true;
+    }
+    const middleIndex = Math.ceil(arr.length / 2);
+    const firstHalf = arr.slice(0, middleIndex);
+    var urls3 = new InvUrl7({ url: firstHalf });
+    const r1 = urls3.save();
+    if (middleIndex < arr.length) {
+        const secondHalf = arr.slice(middleIndex);
+        var urls4 = new InvUrl8({ url: secondHalf });
+        urls4.save();
+    }
+};
+
+const divideArray1 = async(arr) => {
+    if (arr.length === 0) return;
+    if (arr.length === 1) {
+        ar1 = new InvUrl1({ url: arr });
+        await ar1.save();
+        return true;
+    }
+    const middleIndex = Math.ceil(arr.length / 2);
+    const firstHalf = arr.slice(0, middleIndex);
     const secondHalf = arr.slice(middleIndex);
-    var urls4 = new InvUrl4({ url: secondHalf });
-    await urls4.save();
-    return true;
-}
+    console.log('dividearr2', firstHalf.length)
+    console.log('dividearr2', secondHalf.length)
+    donetwo(firstHalf);
+    dthreefour(secondHalf);
+};
+
+const divideArray2 = async(arr) => {
+    if (arr.length === 0) return;
+    if (arr.length === 1) {
+        ar1 = new InvUrl2({ url: arr });
+        await ar1.save();
+    }
+    const middleIndex = Math.ceil(arr.length / 2);
+    const firstHalf = arr.slice(0, middleIndex);
+
+    const secondHalf = arr.slice(middleIndex);
+    console.log('dividearr2', firstHalf.length)
+    console.log('dividearr2', secondHalf.length)
+    dfivesix(firstHalf);
+    dseveneight(secondHalf);
+};
 
 exports.uploadinvdata = async(req, res) => {
     await InvProduct.deleteMany();
@@ -184,12 +266,15 @@ exports.uploadinvdata = async(req, res) => {
     await InvUrl2.deleteMany();
     await InvUrl3.deleteMany();
     await InvUrl4.deleteMany();
+    await InvUrl5.deleteMany();
+    await InvUrl6.deleteMany();
+    await InvUrl7.deleteMany();
+    await InvUrl8.deleteMany();
     await InvUpc.deleteMany();
     await AutoFetchData.deleteMany();
-    await Serial.findOneAndUpdate({}, { start_index1: 0 }, { new: true })
-    await Serial.findOneAndUpdate({}, { start_index2: 0 }, { new: true })
-    await Serial.findOneAndUpdate({}, { start_index3: 0 }, { new: true })
-    await Serial.findOneAndUpdate({}, { start_index4: 0 }, { new: true })
+    await Serial.deleteMany();
+    let serialNum = new Serial({ start_index1: 0, start_index2: 0, start_index3: 0, start_index4: 0, start_index5: 0, start_index6: 0, start_index7: 0, start_index8: 0 });
+    await serialNum.save();
 
     const file = req.file;
     if (!file) {
@@ -203,35 +288,45 @@ exports.uploadinvdata = async(req, res) => {
     // Convert the sheet to JSON
     const data1 = xlsx.utils.sheet_to_json(sheet);
 
-    const data = data1.filter((d) => d['ASIN'] !== undefined)
+    const data = data1.filter((d) => d['ASIN'] !== undefined);
+    if (data.length === 0) {
+        return res.status(400).json({ msg: 'No valid data to process' });
+    }
+
     InvProduct.insertMany(data)
         .then(async() => {
             const uniqueUpc = data
                 .map(item => item['Input UPC'].replace("UPC", "")) // Extract only the URLs
                 .filter((upc, index, self) => self.indexOf(upc) === index);
-            var upcs = new InvUpc({ upc: uniqueUpc });
-            await upcs.save();
+            if (uniqueUpc.length > 0) {
+                var upcs = new InvUpc({ upc: uniqueUpc });
+                await upcs.save();
+            }
         })
         .then(async() => {
             const uniqueUrls = data
                 .map(item => item['Product link'].split(".html")[0] + ".html")
                 .filter((url, index, self) => self.indexOf(url) === index);
 
-            const middleIndex = Math.ceil(uniqueUrls.length / 2);
-            const firstHalf = uniqueUrls.slice(0, middleIndex);
-            let succ1 = divideArray1(firstHalf)
-            const secondHalf = uniqueUrls.slice(middleIndex);
-            let succ2 = await divideArray2(secondHalf);
-            if (succ1 & succ2) {
+            if (uniqueUrls.length > 0) {
+                const middleIndex = Math.ceil(uniqueUrls.length / 2);
+                const firstHalf = uniqueUrls.slice(0, middleIndex);
+                divideArray1(firstHalf);
+                const secondHalf = uniqueUrls.slice(middleIndex);
+                divideArray2(secondHalf)
+                console.log("first", firstHalf.length)
+                console.log("Second", secondHalf.length)
                 res.status(200).json({ msg: 'Data successfully uploaded' });
+            } else {
+                res.status(200).json({ msg: 'No unique URLs to process' });
             }
         })
         .catch(err => {
             console.error('Error saving data to MongoDB:', err);
             res.status(500).json({ msg: 'Error saving data to MongoDB' });
         });
-
 };
+
 
 // ------send inventory products links to home page---
 exports.getinvlinks = async(req, res) => {
@@ -241,8 +336,12 @@ exports.getinvlinks = async(req, res) => {
         let result2 = await InvUrl2.find();
         let result3 = await InvUrl3.find();
         let result4 = await InvUrl4.find();
+        let result5 = await InvUrl5.find();
+        let result6 = await InvUrl6.find();
+        let result7 = await InvUrl7.find();
+        let result8 = await InvUrl8.find();
 
-        res.status(200).json({ links1: result1, links2: result2, links3: result3, links4: result4 })
+        res.status(200).json({ links1: result1, links2: result2, links3: result3, links4: result4, links5: result5, links6: result6, links7: result7, links8: result8, })
     } catch (err) {
         console.log(err);
     }
@@ -350,6 +449,57 @@ exports.setindex3 = async(req, res) => {
 exports.setindex4 = async(req, res) => {
     const num = req.body.start_index
     Serial.findOneAndUpdate({}, { start_index4: num }, { new: true })
+        .then(updatedDoc => {
+            if (updatedDoc) {
+                res.status(200).json({ status: true, index: num })
+            }
+        })
+        .catch(error => {
+            console.error("Error updating document:", error);
+        });
+}
+exports.setindex5 = async(req, res) => {
+    console.log("setindex5")
+    const num = req.body.start_index
+    Serial.findOneAndUpdate({}, { start_index5: num }, { new: true })
+        .then(updatedDoc => {
+            if (updatedDoc) {
+                res.status(200).json({ status: true, index: num })
+            }
+        })
+        .catch(error => {
+            console.error("Error updating document:", error);
+        });
+}
+exports.setindex6 = async(req, res) => {
+    const num = req.body.start_index
+    Serial.findOneAndUpdate({}, { start_index6: num }, { new: true })
+        .then(updatedDoc => {
+            if (updatedDoc) {
+                res.status(200).json({ status: true, index: num })
+            }
+        })
+        .catch(error => {
+            console.error("Error updating document:", error);
+        });
+}
+
+exports.setindex7 = async(req, res) => {
+    const num = req.body.start_index
+    Serial.findOneAndUpdate({}, { start_index7: num }, { new: true })
+        .then(updatedDoc => {
+            if (updatedDoc) {
+                res.status(200).json({ status: true, index: num })
+            }
+        })
+        .catch(error => {
+            console.error("Error updating document:", error);
+        });
+}
+
+exports.setindex8 = async(req, res) => {
+    const num = req.body.start_index
+    Serial.findOneAndUpdate({}, { start_index8: num }, { new: true })
         .then(updatedDoc => {
             if (updatedDoc) {
                 res.status(200).json({ status: true, index: num })

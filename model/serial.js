@@ -17,6 +17,22 @@ const urlSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    start_index5: {
+        type: Number,
+        default: 0
+    },
+    start_index6: {
+        type: Number,
+        default: 0
+    },
+    start_index7: {
+        type: Number,
+        default: 0
+    },
+    start_index8: {
+        type: Number,
+        default: 0
+    },
 
 });
 module.exports = mongoose.model('Serial', urlSchema);

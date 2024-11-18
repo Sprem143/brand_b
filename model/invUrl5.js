@@ -4,5 +4,6 @@ const urlSchema = new mongoose.Schema({
     url: {
         type: [String],
     }
+
 });
-module.exports = mongoose.model('InvUrl4', urlSchema);
+module.exports = mongoose.model('InvUrl5', urlSchema);
