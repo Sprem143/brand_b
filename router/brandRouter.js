@@ -5,7 +5,7 @@ const upload = multer({ dest: 'uploads/' });
 
 const { autofetchdata } = require('../controller/inventory');
 const { fetchbrand, getproduct, } = require('../controller/brandController');
-const { setindex, setindex2, setindex3, setindex4, setindex5, setindex6, setindex7, setindex8, getserialnumber, downloadInvSheet, downloadfinalSheet, downloadExcel, uploaddata, sendproductsurl, uploadinvdata, getinvlinks, getinvproduct } = require('../controller/database');
+const { setindex, settime, setindex2, setindex3, setindex4, setindex5, setindex6, setindex7, setindex8, getserialnumber, downloadInvSheet, downloadfinalSheet, downloadExcel, uploaddata, sendproductsurl, uploadinvdata, getinvlinks, getinvproduct } = require('../controller/database');
 
 router.post('/fetchbrand', fetchbrand);
 router.get('/scrapproduct', getproduct);
@@ -27,6 +27,7 @@ router.post('/setindex5', setindex5);
 router.post('/setindex6', setindex6);
 router.post('/setindex7', setindex7);
 router.post('/setindex8', setindex8);
+router.post('/settime', settime);
 router.get('/getserialnumber', getserialnumber);
 
 module.exports = router;

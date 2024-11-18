@@ -33,6 +33,10 @@ const urlSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    time: {
+        type: Number,
+        default: 0
+    }
 
 });
 module.exports = mongoose.model('Serial', urlSchema);

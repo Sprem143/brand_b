@@ -76,8 +76,7 @@ exports.downloadfinalSheet = async(req, res) => {
 
         // Create a map for quick access to blk products by UPC
         const blkMap = new Map(blk.map(product => [product.upc, product]));
-        console.log(blkMap)
-            // Filter and map data to the desired format
+        // Filter and map data to the desired format
         const jsondata = amz.map((item) => {
             const blkItem = blkMap.get(item.UPC);
             return {
@@ -191,7 +190,6 @@ const dthreefour = async(arr) => {
 };
 
 const dfivesix = async(arr) => {
-    console.log('fivesxi', arr.length)
     if (arr.length === 0) return;
     if (arr.length === 1) {
         ar1 = new InvUrl5({ url: arr });
@@ -210,7 +208,6 @@ const dfivesix = async(arr) => {
 };
 
 const dseveneight = async(arr) => {
-    console.log('seveneight', arr.length)
     if (arr.length === 0) return;
     if (arr.length === 1) {
         ar1 = new InvUrl7({ url: arr });
@@ -238,8 +235,6 @@ const divideArray1 = async(arr) => {
     const middleIndex = Math.ceil(arr.length / 2);
     const firstHalf = arr.slice(0, middleIndex);
     const secondHalf = arr.slice(middleIndex);
-    console.log('dividearr2', firstHalf.length)
-    console.log('dividearr2', secondHalf.length)
     donetwo(firstHalf);
     dthreefour(secondHalf);
 };
@@ -254,8 +249,6 @@ const divideArray2 = async(arr) => {
     const firstHalf = arr.slice(0, middleIndex);
 
     const secondHalf = arr.slice(middleIndex);
-    console.log('dividearr2', firstHalf.length)
-    console.log('dividearr2', secondHalf.length)
     dfivesix(firstHalf);
     dseveneight(secondHalf);
 };
@@ -273,7 +266,7 @@ exports.uploadinvdata = async(req, res) => {
     await InvUpc.deleteMany();
     await AutoFetchData.deleteMany();
     await Serial.deleteMany();
-    let serialNum = new Serial({ start_index1: 0, start_index2: 0, start_index3: 0, start_index4: 0, start_index5: 0, start_index6: 0, start_index7: 0, start_index8: 0 });
+    let serialNum = new Serial({ start_index1: 0, start_index2: 0, start_index3: 0, start_index4: 0, start_index5: 0, start_index6: 0, start_index7: 0, start_index8: 0, time: 0 });
     await serialNum.save();
 
     const file = req.file;
@@ -288,7 +281,7 @@ exports.uploadinvdata = async(req, res) => {
     // Convert the sheet to JSON
     const data1 = xlsx.utils.sheet_to_json(sheet);
 
-    const data = data1.filter((d) => d['ASIN'] !== undefined);
+    const data = data1.filter((d) => d['ASIN'] !== undefined && d['Input UPC'] !== undefined);
     if (data.length === 0) {
         return res.status(400).json({ msg: 'No valid data to process' });
     }
@@ -314,8 +307,6 @@ exports.uploadinvdata = async(req, res) => {
                 divideArray1(firstHalf);
                 const secondHalf = uniqueUrls.slice(middleIndex);
                 divideArray2(secondHalf)
-                console.log("first", firstHalf.length)
-                console.log("Second", secondHalf.length)
                 res.status(200).json({ msg: 'Data successfully uploaded' });
             } else {
                 res.status(200).json({ msg: 'No unique URLs to process' });
@@ -459,7 +450,6 @@ exports.setindex4 = async(req, res) => {
         });
 }
 exports.setindex5 = async(req, res) => {
-    console.log("setindex5")
     const num = req.body.start_index
     Serial.findOneAndUpdate({}, { start_index5: num }, { new: true })
         .then(updatedDoc => {
@@ -503,6 +493,21 @@ exports.setindex8 = async(req, res) => {
         .then(updatedDoc => {
             if (updatedDoc) {
                 res.status(200).json({ status: true, index: num })
+            }
+        })
+        .catch(error => {
+            console.error("Error updating document:", error);
+        });
+}
+exports.settime = async(req, res) => {
+
+    const num = req.body.time
+
+    Serial.findOneAndUpdate({}, { time: num }, { new: true })
+        .then(updatedDoc => {
+            console.log(updatedDoc)
+            if (updatedDoc) {
+                res.status(200).json({ status: true })
             }
         })
         .catch(error => {

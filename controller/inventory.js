@@ -155,7 +155,6 @@ exports.autofetchdata = async(req, res) => {
             }
             return null;
         }).filter(item => item !== null);
-        console.log(filterData.length)
         let r = await AutoFetchData.insertMany(filterData)
         if (r) {
             res.status(200).send(true);
