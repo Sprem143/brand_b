@@ -33,6 +33,10 @@ const urlSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    start_error_index:{
+        type: Number,
+        default: 0
+    },
     time: {
         type: Number,
         default: 0
