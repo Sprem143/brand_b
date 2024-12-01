@@ -9,6 +9,7 @@ const { autofetchdata6 } = require('../controller/Inventory_controller/inventory
 const { autofetchdata7 } = require('../controller/Inventory_controller/inventory7');
 const { autofetchdata8 } = require('../controller/Inventory_controller/inventory8');
 
+
 router.post('/autofetchdata2', autofetchdata2);
 router.post('/autofetchdata3', autofetchdata3);
 router.post('/autofetchdata4', autofetchdata4);

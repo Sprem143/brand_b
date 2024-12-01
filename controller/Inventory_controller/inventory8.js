@@ -1,6 +1,6 @@
-const AutoFetchData = require('../../model/autofetchdata')
-const InvProduct = require('../../model/invProduct');
-const NoProduct= require('../../model/noProduct');
+const AutoFetchData = require('../../model/Inventory_model/autofetchdata')
+const InvProduct = require('../../model/Inventory_model/invProduct');
+const NoProduct= require('../../model/Inventory_model/noProduct');
 require('dotenv').config();
 const cheerio = require('cheerio');
 const apikey = process.env.API_KEY
@@ -102,6 +102,7 @@ async function fetchAndExtractVariable(html, variableName) {
 //         res.status(500).send(error.message);
 //     }
 // }
+
 const saveData=async(utagData)=>{
     var datas = await InvProduct.find();
     const price = utagData.sku_price;
@@ -153,12 +154,10 @@ const saveData=async(utagData)=>{
     await AutoFetchData.insertMany(filterData);
 }
 
-exports.autofetchdata8= async(req, res) => {
-    console.log('autofetch')
-   
+exports.autofetchdata8= async(req, res) => {   
     try {
         const client = new ZenRows(apikey);
-        const url = req.body.link
+        const url = req.body.link;
         const request = await client.get(url, {
             premium_proxy: true,
             js_render: true,

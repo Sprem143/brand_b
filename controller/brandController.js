@@ -3,13 +3,12 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 require('dotenv').config();
 const apikey = process.env.API_KEY
-const BrandPage = require('../model/brandpage');
-const BrandUrl = require('../model/brandurl');
-const AvailableProduct = require('../model/AvailableProduct')
+const BrandPage = require('../model/Brand_model/brandpage');
+const BrandUrl = require('../model/Brand_model/brandurl');
 const axios = require('axios');
 const cheerio = require('cheerio')
-const Product = require('../model/products');
-const Upc = require('../model/upc');
+const Product = require('../model/Brand_model/products');
+const Upc = require('../model/Brand_model/upc');
 
 
 exports.fetchbrand = async(req, res) => {
@@ -107,8 +106,6 @@ const handleSecondPageScraping = async(urls) => {
         }
     }
 };
-
-
 
 const generateurl = async(num, url) => {
     let n1 = 60;

@@ -7,7 +7,7 @@ const autofetchdataSchema = new mongoose.Schema({
     'Vendor URL': String,
     ASIN: String,
     SKU: String,
-    'Product price': String,
+    'Product price':Number,
     'Amazon link': String,
     'Image link': String,
     'Available Quantity': Number,
@@ -16,9 +16,9 @@ const autofetchdataSchema = new mongoose.Schema({
     'Amazon Fees%': String,
     'Shipping Template': String,
     'Min Profit': String,
-    'Current Price': String,
+    'Current Price':Number,
     'Coupon Offer Price': Number,
-    'Current Quantity': String
+    'Current Quantity':Number
 
 });
 

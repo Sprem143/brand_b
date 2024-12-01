@@ -1,23 +1,16 @@
-const BrandUrl = require('../../model/brandurl');
-const Product = require('../../model/products');
-const Serial = require('../../model/serial')
-const InvUrl1 = require('../../model/invUrl1');
-const InvUrl2 = require('../../model/invUrl2');
-const InvUrl3 = require('../../model/invUrl3');
-const InvUrl4 = require('../../model/invUrl4');
-const InvUrl5 = require('../../model/invUrl5');
-const InvUrl6 = require('../../model/invUrl6');
-const InvUrl7 = require('../../model/invUrl7');
-const InvUrl8 = require('../../model/invUrl8');
-const AutoFetchData = require('../../model/autofetchdata');
-const Backup= require('../../model/backup')
-const Upc = require('../../model/upc');
-const xlsx = require('xlsx')
-const fs = require('fs');
-const path = require('path');
-
-
-
+const BrandUrl = require('../../model/Brand_model/brandurl');
+const Serial = require('../../model/Inventory_model/serial')
+const InvUrl1 = require('../../model/Inventory_model/invUrl1');
+const InvUrl2 = require('../../model/Inventory_model/invUrl2');
+const InvUrl3 = require('../../model/Inventory_model/invUrl3');
+const InvUrl4 = require('../../model/Inventory_model/invUrl4');
+const InvUrl5 = require('../../model/Inventory_model/invUrl5');
+const InvUrl6 = require('../../model/Inventory_model/invUrl6');
+const InvUrl7 = require('../../model/Inventory_model/invUrl7');
+const InvUrl8 = require('../../model/Inventory_model/invUrl8');
+const AutoFetchData = require('../../model/Inventory_model/autofetchdata');
+const Upc = require('../../model/Brand_model/upc');
+const Backup= require('../../model/Inventory_model/backup')
 
 // -----------send url list of product to home page------
 exports.sendproductsurl = async(req, res) => {
@@ -33,7 +26,18 @@ exports.sendproductsurl = async(req, res) => {
     }
 }
 
-
+exports.deletebackup=async(req,res)=>{
+    try{
+        const {name}= req.body;
+         let result= await Backup.deleteOne({name:name})
+         if(result){
+            res.status(200).json({status:true})
+         }
+    }catch(err){
+        console.log(err);
+        res.status(500).send(err)
+    }
+}
 
 
 // ------send inventory products links to home page---
@@ -58,7 +62,10 @@ exports.getinvlinks = async(req, res) => {
 exports.getinvproduct = async(req, res) => {
         try {
             const invProduct = await AutoFetchData.find();
-            res.status(200).send(invProduct)
+            let filterdata= invProduct.filter((product,index,self)=>{
+                index=== self.findIndex((p)=> p['Input UPC']=== product['Input UPC'])
+            })
+            res.status(200).send(filterdata)
         } catch (err) {
             console.log(err);
             res.send(err)

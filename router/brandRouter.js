@@ -6,8 +6,8 @@ const upload = multer({ dest: 'uploads/' });
 const { autofetchdata } = require('../controller/Inventory_controller/inventory');
 const {geterrorurl}= require('../controller/database_controller/db_get')
 const { fetchbrand, getproduct, } = require('../controller/brandController');
-const { getupdatedproduct,seterrorindex, setindex, settime, setindex2, setindex3, setindex4, setindex5, setindex6, setindex7, setindex8, getserialnumber, sendproductsurl, getinvlinks, getinvproduct } = require('../controller/database_controller/database');
-const {downloadInvSheet, downloadfinalSheet, uploadinvdata, downloadExcel, uploaddata}= require('../controller/database_controller/db_upload_download')
+const {deletebackup ,getupdatedproduct,seterrorindex, setindex, settime, setindex2, setindex3, setindex4, setindex5, setindex6, setindex7, setindex8, getserialnumber, sendproductsurl, getinvlinks, getinvproduct } = require('../controller/database_controller/database');
+const { downloadInvSheet,downloadfinalSheet, uploadinvdata, downloadExcel, uploaddata} = require('../controller/database_controller/db_upload_download')
 
 router.post('/fetchbrand', fetchbrand);
 router.get('/scrapproduct', getproduct);
@@ -34,5 +34,5 @@ router.post('/setindex8', setindex8);
 router.post('/settime', settime);
 router.get('/getserialnumber', getserialnumber);
 router.get('/getupdatedproduct', getupdatedproduct);
-
+router.delete('/deletebackup', deletebackup)
 module.exports = router;

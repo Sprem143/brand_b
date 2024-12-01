@@ -1,6 +1,6 @@
-const AutoFetchData = require('../../model/Inventory_model/autofetchdata')
-const InvProduct = require('../../model/Inventory_model/invProduct');
-const NoProduct= require('../../model/Inventory_model/noProduct');
+const MAutoFetchData = require('../../model/Manual_inv/autofetchdata')
+const MInvProduct = require('../../model/Manual_inv/invProduct');
+const MNoProduct= require('../../model/Manual_inv/noProduct');
 require('dotenv').config();
 const cheerio = require('cheerio');
 const apikey = process.env.API_KEY
@@ -24,8 +24,9 @@ async function fetchAndExtractVariable(html, variableName) {
     });
     return variableValue;
 }
+
 const saveData=async(utagData)=>{
-    var datas = await InvProduct.find();
+    var datas = await MInvProduct.find();
     const price = utagData.sku_price;
     const upc = utagData.sku_upc;
     const quantity = utagData.sku_inventory;
@@ -44,45 +45,39 @@ const saveData=async(utagData)=>{
     var noproducturl;
 
     let filterData = datas.map((data) => {
-        const matchedProduct = urlProduct.find((p) => p.upc === data['Input UPC'].replace('UPC', ''));
-        matchedProduct?noproducturl=data['Product link'] : null
+        const matchedProduct = urlProduct.find((p) => p.upc === data.upc)
+        matchedProduct?noproducturl=data['Vendor URL'] : null
         if (matchedProduct) {
             return {
-                'Product link': data['Product link'],
-                'Current Quantity': matchedProduct.quantity,
-                'Product price': data['Product price'],
-                'Current Price': Number(coupon) > 0 && Boolean(matchedProduct.onsale) === false ? matchedProduct.price * (1 - (coupon / 100)) : matchedProduct.price,
+                'Vendor URL': data['Vendor URL'],
+                'quantity': matchedProduct.quantity,
+                'Product Cost': Number(data['Product Cost']).toFixed(2),
+                'Current Price': Number(Number(coupon) > 0 && Boolean(matchedProduct.onsale) === false ? matchedProduct.price * (1 - (coupon / 100)) : matchedProduct.price).toFixed(2),
                 'Image link': matchedProduct.imgurl,
-                'Input UPC': data['Input UPC'],
-                'Fulfillment': data['Fulfillment'],
-                'Amazon Fees%': data['Amazon Fees%'],
-                'Amazon link': data['Amazon link'],
-                'Shipping Template': data['Shipping Template'],
-                'Min Profit': data['Min Profit'],
-                ASIN: data.ASIN,
-                SKU: data.SKU
+                SKUs: data.SKUs,
+                available:data.available,
+                upc:data.upc
             };
         }
         return null;
     }).filter(item => item !== null);
     if(filterData.length===0){
-        const existingUrl = await NoProduct.findOne({ url:noproducturl });
+        const existingUrl = await MNoProduct.findOne({ url:noproducturl });
         if (!existingUrl) {
-            const errorurl = new NoProduct({ url:noproducturl});
+            const errorurl = new MNoProduct({ url:noproducturl});
             await errorurl.save();
         }
     }
-    await AutoFetchData.insertMany(filterData);
+   await MAutoFetchData.insertMany(filterData);
 }
 
-exports.autofetchdata = async(req, res) => {
+exports.autofetchdata8 = async(req, res) => {
     try {
         const client = new ZenRows(apikey);
         const url = req.body.link
         const request = await client.get(url, {
             premium_proxy: true,
             js_render: true,
-
         });
         const html = await request.text();
         const utagData = await fetchAndExtractVariable(html, 'utag_data');
@@ -90,7 +85,6 @@ exports.autofetchdata = async(req, res) => {
             if (utagData.sku_inventory.length == 1 && utagData.sku_inventory[0] === '0') {
                 return res.status(200).send(true);
             }
-    
             if (utagData.sku_inventory.length > 1) {
                 saveData(utagData);
                  res.status(200).send(true);
@@ -98,11 +92,10 @@ exports.autofetchdata = async(req, res) => {
         }else{
             throw new Error('Invalid URL or url is not related to belk');
         }
-         
     } catch (error) {
-        const existingUrl = await NoProduct.findOne({ url: req.body.link });
+        const existingUrl = await MNoProduct.findOne({ url: req.body.link });
         if (!existingUrl) {
-            const errorurl = new NoProduct({ url: req.body.link });
+            const errorurl = new MNoProduct({ url: req.body.link });
             await errorurl.save();
         }
         console.error(error.message);

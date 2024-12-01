@@ -1,21 +1,21 @@
-const AvailableProduct = require('../../model/AvailableProduct');
-const FinalProduct = require('../../model/finalProduct')
-const Product = require('../../model/products');
-const Serial = require('../../model/serial')
-const InvUpc = require('../../model/invUpc');
-const InvUrl1 = require('../../model/invUrl1');
-const InvUrl2 = require('../../model/invUrl2');
-const InvUrl3 = require('../../model/invUrl3');
-const InvUrl4 = require('../../model/invUrl4');
-const InvUrl5 = require('../../model/invUrl5');
-const InvUrl6 = require('../../model/invUrl6');
-const InvUrl7 = require('../../model/invUrl7');
-const InvUrl8 = require('../../model/invUrl8');
-const NoProduct= require('../../model/noProduct')
-const InvProduct = require('../../model/invProduct');
-const AutoFetchData = require('../../model/autofetchdata');
-const Backup= require('../../model/backup')
-const Upc = require('../../model/upc');
+const AvailableProduct = require('../../model/Brand_model/AvailableProduct');
+const FinalProduct = require('../../model/Brand_model/finalProduct')
+const Product = require('../../model/Brand_model/products');
+const Serial = require('../../model/Inventory_model/serial')
+const InvUpc = require('../../model/Inventory_model/invUpc');
+const InvUrl1 = require('../../model/Inventory_model/invUrl1');
+const InvUrl2 = require('../../model/Inventory_model/invUrl2');
+const InvUrl3 = require('../../model/Inventory_model/invUrl3');
+const InvUrl4 = require('../../model/Inventory_model/invUrl4');
+const InvUrl5 = require('../../model/Inventory_model/invUrl5');
+const InvUrl6 = require('../../model/Inventory_model/invUrl6');
+const InvUrl7 = require('../../model/Inventory_model/invUrl7');
+const InvUrl8 = require('../../model/Inventory_model/invUrl8');
+const NoProduct= require('../../model/Inventory_model/noProduct')
+const InvProduct = require('../../model/Inventory_model/invProduct');
+const AutoFetchData = require('../../model/Inventory_model/autofetchdata');
+const Backup= require('../../model/Inventory_model/backup')
+const Upc = require('../../model/Brand_model/upc');
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
@@ -122,7 +122,7 @@ exports.downloadExcel = async(req, res) => {
 exports.downloadInvSheet = async(req, res) => {
     try {
         const data = await AutoFetchData.find();
-        const jsondata = data.map((item) => {
+        var jsondata = data.map((item) => {
             return {
                 'Input UPC': item['Input UPC'],
                 ASIN: item['ASIN'],
@@ -140,7 +140,13 @@ exports.downloadInvSheet = async(req, res) => {
                 'Current Quantity': item['Current Quantity']
             }
         });
-        const worksheet = xlsx.utils.json_to_sheet(jsondata);
+        console.log(jsondata.length)
+       let udata=jsondata.filter((product, index, self) => 
+            index === self.findIndex(p => p['Input UPC'] === product['Input UPC'])
+          );
+        console.log(data.length)
+
+        const worksheet = xlsx.utils.json_to_sheet(udata);
         const workbook = xlsx.utils.book_new();
         xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
         const filePath = path.join(__dirname, 'Updated_inventory.xlsx');
@@ -282,7 +288,7 @@ const divideArray2 = async(arr) => {
 };
 
 exports.uploadinvdata = async(req, res) => {
-    let backupdata= await InvProduct.find();
+    let backupdata= await AutoFetchData.find();
     const backup= new Backup({data:backupdata});
     await backup.save();
     await InvProduct.deleteMany();
@@ -303,7 +309,7 @@ exports.uploadinvdata = async(req, res) => {
 
     const file = req.file;
     if (!file) {
-        return res.status(400).send('No file uploaded.');
+        return res.status(400).send('No file uploaded.'); 
     }
     // Load the uploaded Excel file
     const workbook = xlsx.readFile(file.path);
@@ -312,12 +318,11 @@ exports.uploadinvdata = async(req, res) => {
 
     // Convert the sheet to JSON
     const data1 = xlsx.utils.sheet_to_json(sheet);
-
     const data = data1.filter((d) => d['ASIN'] !== undefined && d['Input UPC'] !== undefined);
     if (data.length === 0) {
+        console.log("no data")
         return res.status(400).json({ msg: 'No valid data to process' });
     }
-
     InvProduct.insertMany(data)
         .then(async() => {
             const uniqueUpc = data
