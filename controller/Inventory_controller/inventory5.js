@@ -6,6 +6,14 @@ const cheerio = require('cheerio');
 const apikey = process.env.API_KEY
 const { ZenRows } = require("zenrows");
 
+const fetchdata= {};
+
+const fetchdatas=async()=>{
+    if(!fetchdata){
+       fetchdatas= await InvProduct.find();
+    };
+    return fetchdata;
+}
 async function fetchAndExtractVariable(html, variableName) {
     const $ = cheerio.load(html);
     let variableValue;
@@ -26,7 +34,7 @@ async function fetchAndExtractVariable(html, variableName) {
 }
 
 const saveData=async(utagData)=>{
-    var datas = await InvProduct.find();
+    var datas = await fetchdatas();
     const price = utagData.sku_price;
     const upc = utagData.sku_upc;
     const quantity = utagData.sku_inventory;
