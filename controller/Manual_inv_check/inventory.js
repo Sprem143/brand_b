@@ -5,7 +5,14 @@ require('dotenv').config();
 const cheerio = require('cheerio');
 const apikey = process.env.API_KEY
 const { ZenRows } = require("zenrows");
+let productCache = null;
 
+async function fetchProducts() {
+    if (!productCache) {
+        productCache = await MInvProduct.find();
+    }
+    return productCache;
+}
 async function fetchAndExtractVariable(html, variableName) {
     const $ = cheerio.load(html);
     let variableValue;
@@ -26,7 +33,7 @@ async function fetchAndExtractVariable(html, variableName) {
 }
 
 const saveData=async(utagData)=>{
-    var datas = await MInvProduct.find();
+    var datas = await fetchProducts();
     const price = utagData.sku_price;
     const upc = utagData.sku_upc;
     const quantity = utagData.sku_inventory;
