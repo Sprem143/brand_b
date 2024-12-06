@@ -91,7 +91,7 @@ exports.autofetchdata = async(req, res) => {
                 return res.status(200).send(true);
             }
     
-            if (utagData.sku_inventory.length > 1) {
+           else {
                 saveData(utagData);
                  res.status(200).send(true);
             }
