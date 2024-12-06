@@ -13,9 +13,6 @@ const MAutoFetchData= require('../../model/Manual_inv/autofetchdata');
 const MNoProduct= require('../../model/Manual_inv/noProduct');
 const MSerial= require('../../model/Manual_inv/serial')
 const xlsx = require('xlsx')
-const fs = require('fs');
-const path = require('path');
-
 
 exports.getinvlinks = async(req, res) => {
     try {
@@ -36,7 +33,9 @@ exports.getinvlinks = async(req, res) => {
 
 
 exports.setindex = async(req, res) => {
-    const num = req.body.start_index
+    console.log("set index called")
+    const num = req.body.start_index;
+    console.log(num)
     MSerial.findOneAndUpdate({}, { start_index1: num }, { new: true })
         .then(updatedDoc => {
             if (updatedDoc) {

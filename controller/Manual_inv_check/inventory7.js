@@ -6,6 +6,13 @@ const cheerio = require('cheerio');
 const apikey = process.env.API_KEY
 const { ZenRows } = require("zenrows");
 
+let productCache = null;
+async function fetchProducts() {
+    if (!productCache) {
+        productCache = await MInvProduct.find();
+    }
+    return productCache;
+}
 async function fetchAndExtractVariable(html, variableName) {
     const $ = cheerio.load(html);
     let variableValue;
@@ -13,7 +20,6 @@ async function fetchAndExtractVariable(html, variableName) {
         const scriptContent = $(script).html();
         const regex = new RegExp(`${variableName}\\s*=\\s*({[^]*?});`);
         const match = regex.exec(scriptContent);
-
         if (match) {
             try {
                 variableValue = JSON.parse(match[1]);
@@ -51,7 +57,7 @@ const saveData=async(utagData)=>{
             return {
                 'Vendor URL': data['Vendor URL'],
                 'quantity': matchedProduct.quantity,
-                'Product Cost': Number(data['Product Cost']).toFixed(2),
+                'Product Cost': !isNaN(data['Product Cost'])? Number(data['Product Cost']).toFixed(2):data['Product Cost'],
                 'Current Price': Number(Number(coupon) > 0 && Boolean(matchedProduct.onsale) === false ? matchedProduct.price * (1 - (coupon / 100)) : matchedProduct.price).toFixed(2),
                 'Image link': matchedProduct.imgurl,
                 SKUs: data.SKUs,

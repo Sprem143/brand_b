@@ -6,6 +6,16 @@ const cheerio = require('cheerio');
 const apikey = process.env.API_KEY
 const { ZenRows } = require("zenrows");
 
+
+let productCache = null;
+
+async function fetchProducts() {
+    if (!productCache) {
+        productCache = await MInvProduct.find();
+    }
+    return productCache;
+}
+
 async function fetchAndExtractVariable(html, variableName) {
     const $ = cheerio.load(html);
     let variableValue;
@@ -51,7 +61,7 @@ const saveData=async(utagData)=>{
             return {
                 'Vendor URL': data['Vendor URL'],
                 'quantity': matchedProduct.quantity,
-                'Product Cost': Number(data['Product Cost']).toFixed(2),
+                'Product Cost': !isNaN(data['Product Cost'])? Number(data['Product Cost']).toFixed(2):data['Product Cost'],
                 'Current Price': Number(Number(coupon) > 0 && Boolean(matchedProduct.onsale) === false ? matchedProduct.price * (1 - (coupon / 100)) : matchedProduct.price).toFixed(2),
                 'Image link': matchedProduct.imgurl,
                 SKUs: data.SKUs,
@@ -68,7 +78,7 @@ const saveData=async(utagData)=>{
             await errorurl.save();
         }
     }
-   await MAutoFetchData.insertMany(filterData);
+    await MAutoFetchData.insertMany(filterData);
 }
 
 exports.autofetchdata8 = async(req, res) => {
@@ -78,6 +88,7 @@ exports.autofetchdata8 = async(req, res) => {
         const request = await client.get(url, {
             premium_proxy: true,
             js_render: true,
+
         });
         const html = await request.text();
         const utagData = await fetchAndExtractVariable(html, 'utag_data');
@@ -85,6 +96,7 @@ exports.autofetchdata8 = async(req, res) => {
             if (utagData.sku_inventory.length == 1 && utagData.sku_inventory[0] === '0') {
                 return res.status(200).send(true);
             }
+    
             if (utagData.sku_inventory.length > 1) {
                 saveData(utagData);
                  res.status(200).send(true);
@@ -92,6 +104,7 @@ exports.autofetchdata8 = async(req, res) => {
         }else{
             throw new Error('Invalid URL or url is not related to belk');
         }
+         
     } catch (error) {
         const existingUrl = await MNoProduct.findOne({ url: req.body.link });
         if (!existingUrl) {

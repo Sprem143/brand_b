@@ -53,8 +53,8 @@ const saveData = async (utagData, url) => {
                 'Current Quantity': matchedProduct.quantity,
                 'Product price': data['Product price'],
                 'Current Price': Number(coupon) > 0 && !matchedProduct.onsale
-                ? Number(Number(matchedProduct.price * (1 - coupon / 100)).toFixed(2))
-                : Number(Number(matchedProduct.price).toFixed(2)),
+                    ? Number(Number(matchedProduct.price * (1 - coupon / 100)).toFixed(2))
+                    : Number(Number(matchedProduct.price).toFixed(2)),
                 'Image link': matchedProduct.imgurl,
                 'Input UPC': data['Input UPC'],
                 'Fulfillment': data['Fulfillment'],
@@ -79,10 +79,11 @@ const saveData = async (utagData, url) => {
     await AutoFetchData.insertMany(filterData);
 };
 
-exports.autofetchdata6 = async (req, res) => {
+exports.errorautofetchdata = async (req, res) => {
     try {
         const client = new ZenRows(apikey);
         const url = req.body.link;
+        console.log("errorautofetch",url)
         const request = await client.get(url, {
             premium_proxy: true,
             js_render: true,

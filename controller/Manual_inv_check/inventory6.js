@@ -6,6 +6,16 @@ const cheerio = require('cheerio');
 const apikey = process.env.API_KEY
 const { ZenRows } = require("zenrows");
 
+
+let productCache = null;
+
+async function fetchProducts() {
+    if (!productCache) {
+        productCache = await MInvProduct.find();
+    }
+    return productCache;
+}
+
 async function fetchAndExtractVariable(html, variableName) {
     const $ = cheerio.load(html);
     let variableValue;
@@ -26,7 +36,7 @@ async function fetchAndExtractVariable(html, variableName) {
 }
 
 const saveData=async(utagData)=>{
-    var datas = await MInvProduct.find();
+    var datas = await fetchProducts();
     const price = utagData.sku_price;
     const upc = utagData.sku_upc;
     const quantity = utagData.sku_inventory;
@@ -51,7 +61,7 @@ const saveData=async(utagData)=>{
             return {
                 'Vendor URL': data['Vendor URL'],
                 'quantity': matchedProduct.quantity,
-                'Product Cost': Number(data['Product Cost']).toFixed(2),
+                'Product Cost': !isNaN(data['Product Cost'])? Number(data['Product Cost']).toFixed(2):data['Product Cost'],
                 'Current Price': Number(Number(coupon) > 0 && Boolean(matchedProduct.onsale) === false ? matchedProduct.price * (1 - (coupon / 100)) : matchedProduct.price).toFixed(2),
                 'Image link': matchedProduct.imgurl,
                 SKUs: data.SKUs,
@@ -94,7 +104,6 @@ exports.autofetchdata6 = async(req, res) => {
         }else{
             throw new Error('Invalid URL or url is not related to belk');
         }
-         
     } catch (error) {
         const existingUrl = await MNoProduct.findOne({ url: req.body.link });
         if (!existingUrl) {

@@ -58,7 +58,6 @@ exports.getinvlinks = async(req, res) => {
         console.log(err);
     }
 }
-
 exports.getinvproduct = async(req, res) => {
         try {
             const invProduct = await AutoFetchData.find();
@@ -86,7 +85,8 @@ exports.getserialnumber = async(req, res) => {
 };
 
 exports.setindex = async(req, res) => {
-    const num = req.body.start_index
+    const num = req.body.start_index;
+    console.log("set index", num)
     Serial.findOneAndUpdate({}, { start_index1: num }, { new: true })
         .then(updatedDoc => {
             if (updatedDoc) {
