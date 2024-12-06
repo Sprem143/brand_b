@@ -113,7 +113,7 @@ exports.autofetchdata2 = async (req, res) => {
                 await AutoFetchData.insertMany(oosproduct);
                 return res.status(200).send(true);
             }
-            if (utagData.sku_inventory.length > 1) {
+           else {
                 await saveData(utagData, url);
                 res.status(200).send(true);
             }
