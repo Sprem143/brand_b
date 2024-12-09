@@ -1,20 +1,12 @@
 const MAutoFetchData = require('../../model/Manual_inv/autofetchdata')
 const MInvProduct = require('../../model/Manual_inv/invProduct');
-const MNoProduct= require('../../model/Manual_inv/noProduct');
+const MNoProduct = require('../../model/Manual_inv/noProduct');
+const MInvUrl = require('../../model/Manual_inv/invUrl')
 require('dotenv').config();
 const cheerio = require('cheerio');
-const apikey = process.env.API_KEY
 const { ZenRows } = require("zenrows");
 
-
-let productCache = null;
-
-async function fetchProducts() {
-    if (!productCache) {
-        productCache = await MInvProduct.find();
-    }
-    return productCache;
-}
+const apikey = process.env.API_KEY;
 
 async function fetchAndExtractVariable(html, variableName) {
     const $ = cheerio.load(html);
@@ -23,7 +15,6 @@ async function fetchAndExtractVariable(html, variableName) {
         const scriptContent = $(script).html();
         const regex = new RegExp(`${variableName}\\s*=\\s*({[^]*?});`);
         const match = regex.exec(scriptContent);
-
         if (match) {
             try {
                 variableValue = JSON.parse(match[1]);
@@ -35,79 +26,120 @@ async function fetchAndExtractVariable(html, variableName) {
     return variableValue;
 }
 
-const saveData=async(utagData)=>{
-    var datas = await fetchProducts();
+const saveData = async (utagData, url) => {
+    const datas = await MInvProduct.find({ 'Vendor URL': url });
     const price = utagData.sku_price;
     const upc = utagData.sku_upc;
     const quantity = utagData.sku_inventory;
     const imgurl = utagData.sku_image_url;
     const onsale = utagData.sku_on_sale;
-    const coupon = utagData.product_promotedCoupon[0].cpnDiscount !== undefined ? utagData.product_promotedCoupon[0].cpnDiscount : null;
-    var urlProduct = upc.map((u, index) => {
-        return {
-            upc: u,
-            price: price[index],
-            quantity: quantity[index],
-            imgurl: imgurl[index],
-            onsale: onsale[index]
-        }
-    })
-    var noproducturl;
+    const coupon = utagData.product_promotedCoupon[0]?.cpnDiscount || null;
 
-    let filterData = datas.map((data) => {
-        const matchedProduct = urlProduct.find((p) => p.upc === data.upc)
-        matchedProduct?noproducturl=data['Vendor URL'] : null
-        if (matchedProduct) {
-            return {
-                'Vendor URL': data['Vendor URL'],
-                'quantity': matchedProduct.quantity,
-                'Product Cost': !isNaN(data['Product Cost'])? Number(data['Product Cost']).toFixed(2):data['Product Cost'],
-                'Current Price': Number(Number(coupon) > 0 && Boolean(matchedProduct.onsale) === false ? matchedProduct.price * (1 - (coupon / 100)) : matchedProduct.price).toFixed(2),
-                'Image link': matchedProduct.imgurl,
-                SKUs: data.SKUs,
-                available:data.available,
-                upc:data.upc
-            };
-        }
-        return null;
-    }).filter(item => item !== null);
-    if(filterData.length===0){
-        const existingUrl = await MNoProduct.findOne({ url:noproducturl });
-        if (!existingUrl) {
-            const errorurl = new MNoProduct({ url:noproducturl});
-            await errorurl.save();
-        }
+    const urlProduct = upc.map((u, index) => ({
+        upc: u,
+        price: price[index],
+        quantity: quantity[index],
+        imgurl: imgurl[index],
+        onsale: onsale[index]
+    }));
+    var filterData;
+    if (Array.isArray(datas)) {
+        filterData = datas.map((data) => {
+            const matchedProduct = urlProduct.find((p) => Number(p.upc) === Number(data['upc']));
+            if (matchedProduct) {
+                return {
+                    'Vendor URL': data['Vendor URL'],
+                    'quantity': matchedProduct.quantity,
+                    'Product Cost': !isNaN(data['Product Cost']) ? Number(data['Product Cost']).toFixed(2) : data['Product Cost'],
+                    'Current Price': Number(Number(coupon) > 0 && Boolean(matchedProduct.onsale) === false ? matchedProduct.price * (1 - (coupon / 100)) : matchedProduct.price).toFixed(2),
+                    'Image link': matchedProduct.imgurl,
+                    SKUs: data.SKUs,
+                    available: data.available,
+                    upc: matchedProduct.upc
+                };
+            }
+            return null;
+        }).filter(item => item !== null);
+    } else {
+        filterData = []
     }
     await MAutoFetchData.insertMany(filterData);
-}
+};
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-exports.autofetchdata6 = async(req, res) => {
+exports.autofetchdata6 = async (req, res) => {
     try {
         const client = new ZenRows(apikey);
-        const url = req.body.link
+        const url = req.body.link;
+        const linkid= req.body.linkid
+        console.log(linkid)
         const request = await client.get(url, {
             premium_proxy: true,
             js_render: true,
-
         });
         const html = await request.text();
-        const utagData = await fetchAndExtractVariable(html, 'utag_data');
+        var utagData;
+        utagData = await fetchAndExtractVariable(html, 'utag_data');
+        if (!utagData) {
+            await delay(5000);
+            const request = await client.get(url, {
+                premium_proxy: true,
+                js_render: true,
+            });
+            const html = await request.text();
+            utagData = await fetchAndExtractVariable(html, 'utag_data');
+
+        }
+
         if (utagData) {
-            if (utagData.sku_inventory.length == 1 && utagData.sku_inventory[0] === '0') {
+            if (utagData.sku_inventory == []) {
+                let oosdata = await MInvProduct.find({ 'Product link': url })
+                let oosproduct = oosdata.map((data) => {
+                    return {
+                        'Vendor URL': data['Vendor URL'],
+                        'quantity': 0,
+                        'Product Cost': !isNaN(data['Product Cost']) ? Number(data['Product Cost']).toFixed(2) : data['Product Cost'],
+                        'Current Price':0,
+                        'Image link': matchedProduct.imgurl,
+                        SKUs: data.SKUs,
+                        available: data.available,
+                        upc: matchedProduct.upc
+                    }
+                })
+                await MAutoFetchData.insertMany(oosproduct);
                 return res.status(200).send(true);
             }
-    
-            if (utagData.sku_inventory.length > 1) {
-                saveData(utagData);
-                 res.status(200).send(true);
+            if (utagData.sku_inventory.length === 1 && utagData.sku_inventory[0] === '0') {
+                let oosdata = await MInvProduct.find({ 'Product link': url })
+                const oosproduct = oosdata.map((data) => {
+                    return {
+                        'Vendor URL': data['Vendor URL'],
+                        'quantity': 0,
+                        'Product Cost': !isNaN(data['Product Cost']) ? Number(data['Product Cost']).toFixed(2) : data['Product Cost'],
+                        'Current Price':0,
+                        'Image link': matchedProduct.imgurl,
+                        SKUs: data.SKUs,
+                        available: data.available,
+                        upc: matchedProduct.upc
+                    }
+                })
+                await MAutoFetchData.insertMany(oosproduct);
+                return res.status(200).send(true);
             }
-        }else{
-            throw new Error('Invalid URL or url is not related to belk');
+            await saveData(utagData, url);
+            await MInvUrl.updateOne(
+                { _id: linkid }, 
+                { $pull: { url: url } }
+              )
+            res.status(200).send(true);
+        } else {
+            throw new Error('Invalid URL or URL is not related to belk');
         }
     } catch (error) {
         const existingUrl = await MNoProduct.findOne({ url: req.body.link });
         if (!existingUrl) {
             const errorurl = new MNoProduct({ url: req.body.link });
+            console.log(errorurl)
             await errorurl.save();
         }
         console.error(error.message);
@@ -116,4 +148,5 @@ exports.autofetchdata6 = async(req, res) => {
         }
         res.status(500).send({ error: error.message });
     }
-}
+};
+

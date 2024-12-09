@@ -1,153 +1,21 @@
-const MInvUrl1 = require('../../model/Manual_inv/invUrl1')
-const MInvUrl2 = require('../../model/Manual_inv/invUrl2')
-const MInvUrl3 = require('../../model/Manual_inv/invUrl3')
-const MInvUrl4 = require('../../model/Manual_inv/invUrl4')
-const MInvUrl5 = require('../../model/Manual_inv/invUrl5')
-const MInvUrl6 = require('../../model/Manual_inv/invUrl6')
-const MInvUrl7 = require('../../model/Manual_inv/invUrl7')
-const MInvUrl8 = require('../../model/Manual_inv/invUrl8')
+const MInvUrl = require('../../model/Manual_inv/invUrl')
 const MInvUpc= require('../../model/Manual_inv/invUpc');
 const MInvProduct = require('../../model/Manual_inv/invProduct');
 const MBackup= require('../../model/Manual_inv/backup');
 const MAutoFetchData= require('../../model/Manual_inv/autofetchdata');
 const MNoProduct= require('../../model/Manual_inv/noProduct');
 const MSerial= require('../../model/Manual_inv/serial')
-const xlsx = require('xlsx')
+const xlsx = require('xlsx');
 
 exports.getinvlinks = async(req, res) => {
     try {
-        let result1 = await MInvUrl1.find();
-        let result2 = await MInvUrl2.find();
-        let result3 = await MInvUrl3.find();
-        let result4 = await MInvUrl4.find();
-        let result5 = await MInvUrl5.find();
-        let result6 = await MInvUrl6.find();
-        let result7 = await MInvUrl7.find();
-        let result8 = await MInvUrl8.find();
-
-        res.status(200).json({ links1: result1, links2: result2, links3: result3, links4: result4, links5: result5, links6: result6, links7: result7, links8: result8, })
+        let result1 = await MInvUrl.find();
+        res.status(200).json({ links1: result1 })
     } catch (err) {
         console.log(err);
     }
 }
 
-
-exports.setindex = async(req, res) => {
-    console.log("set index called")
-    const num = req.body.start_index;
-    console.log(num)
-    MSerial.findOneAndUpdate({}, { start_index1: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true, index: num })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
-}
-
-exports.setindex2 = async(req, res) => {
-    const num = req.body.start_index
-    MSerial.findOneAndUpdate({}, { start_index2: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true, index: num })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
-}
-
-exports.setindex3 = async(req, res) => {
-    const num = req.body.start_index
-    MSerial.findOneAndUpdate({}, { start_index3: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true, index: num })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
-}
-
-exports.setindex4 = async(req, res) => {
-    const num = req.body.start_index
-    MSerial.findOneAndUpdate({}, { start_index4: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true, index: num })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
-}
-exports.setindex5 = async(req, res) => {
-    const num = req.body.start_index
-    MSerial.findOneAndUpdate({}, { start_index5: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true, index: num })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
-}
-exports.setindex6 = async(req, res) => {
-    const num = req.body.start_index
-    MSerial.findOneAndUpdate({}, { start_index6: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true, index: num })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
-}
-
-exports.setindex7 = async(req, res) => {
-    const num = req.body.start_index
-    MSerial.findOneAndUpdate({}, { start_index7: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true, index: num })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
-}
-
-exports.setindex8 = async(req, res) => {
-    const num = req.body.start_index
-    MSerial.findOneAndUpdate({}, { start_index8: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true, index: num })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
-}
-exports.seterrorindex = async(req, res) => {
-    const num = req.body.start_index;
-    console.log(num)
-    MSerial.findOneAndUpdate({}, { start_error_index: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true, index: num })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
-}
 exports.settime = async(req, res) => {
 
     const num = req.body.time
@@ -164,122 +32,13 @@ exports.settime = async(req, res) => {
 }
 
 
-
-// ----------- upload file for invontory update-------
-const donetwo = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new MInvUrl1({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    var urls1 = new MInvUrl1({ url: firstHalf });
-    urls1.save();
-    if (middleIndex < arr.length) {
-        const secondHalf = arr.slice(middleIndex);
-        var urls2 = new MInvUrl2({ url: secondHalf });
-        urls2.save();
-    }
-};
-
-const dthreefour = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new MInvUrl3({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    var urls3 = new MInvUrl3({ url: firstHalf });
-    urls3.save();
-    if (middleIndex < arr.length) {
-        const secondHalf = arr.slice(middleIndex);
-        var urls4 = new MInvUrl4({ url: secondHalf });
-        urls4.save();
-    }
-};
-
-const dfivesix = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new MInvUrl5({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    var urls3 = new MInvUrl5({ url: firstHalf });
-    urls3.save();
-    if (middleIndex < arr.length) {
-        const secondHalf = arr.slice(middleIndex);
-        var urls6 = new MInvUrl6({ url: secondHalf });
-        urls6.save();
-    }
-};
-
-const dseveneight = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new MInvUrl7({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    var urls3 = new MInvUrl7({ url: firstHalf });
-    const r1 = urls3.save();
-    if (middleIndex < arr.length) {
-        const secondHalf = arr.slice(middleIndex);
-        var urls4 = new MInvUrl8({ url: secondHalf });
-        urls4.save();
-    }
-};
-
-const divideArray1 = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new MInvUrl1({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    const secondHalf = arr.slice(middleIndex);
-    donetwo(firstHalf);
-    dthreefour(secondHalf);
-};
-
-const divideArray2 = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new MInvUrl2({ url: arr });
-        await ar1.save();
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-
-    const secondHalf = arr.slice(middleIndex);
-    dfivesix(firstHalf);
-    dseveneight(secondHalf);
-};
-
 exports.Muploadinvdata = async(req, res) => {
     console.log("upload function called")
     let backupdata= await MInvProduct.find();
     const backup= new MBackup({data:backupdata});
     await backup.save();
     await MInvProduct.deleteMany();
-    await MInvUrl1.deleteMany();
-    await MInvUrl2.deleteMany();
-    await MInvUrl3.deleteMany();
-    await MInvUrl4.deleteMany();
-    await MInvUrl5.deleteMany();
-    await MInvUrl6.deleteMany();
-    await MInvUrl7.deleteMany();
-    await MInvUrl8.deleteMany();
+    await MInvUrl.deleteMany();
     await MInvUpc.deleteMany();
     await MAutoFetchData.deleteMany();
     await MNoProduct.deleteMany();
@@ -318,14 +77,11 @@ console.log(data.length)
             const uniqueUrls = data
                 .map(item => item['Vendor URL'].split(".html")[0] + ".html")
                 .filter((url, index, self) => self.indexOf(url) === index);
-
+console.log("url", uniqueUrls.length)
             if (uniqueUrls.length > 0) {
-                const middleIndex = Math.ceil(uniqueUrls.length / 2);
-                const firstHalf = uniqueUrls.slice(0, middleIndex);
-                divideArray1(firstHalf);
-                const secondHalf = uniqueUrls.slice(middleIndex);
-                divideArray2(secondHalf)
-                res.status(200).json({ msg: 'Data successfully uploaded' });
+              const urls= new MInvUrl({url:uniqueUrls});
+              await urls.save();
+              res.status(200).json({ msg: 'File uploaded Successfully' });
             } else {
                 res.status(200).json({ msg: 'No unique URLs to process' });
             }
@@ -354,16 +110,6 @@ exports.getupdatedproduct = async(req, res) => {
         console.log(err)
     }
 }
-
-exports.getserialnumber = async(req, res) => {
-    try {
-        const num = await MSerial.find();
-        res.status(200).send(num[0])
-    } catch (err) {
-        console.log(err);
-        res.status(500).send(err);
-    }
-};
 
 exports.getbackup = async(req, res) => {
     try {

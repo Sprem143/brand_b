@@ -4,17 +4,9 @@ const Product = require('../../model/Brand_model/products');
 const Serial = require('../../model/Inventory_model/serial')
 const InvUpc = require('../../model/Inventory_model/invUpc');
 const InvUrl1 = require('../../model/Inventory_model/invUrl1');
-const InvUrl2 = require('../../model/Inventory_model/invUrl2');
-const InvUrl3 = require('../../model/Inventory_model/invUrl3');
-const InvUrl4 = require('../../model/Inventory_model/invUrl4');
-const InvUrl5 = require('../../model/Inventory_model/invUrl5');
-const InvUrl6 = require('../../model/Inventory_model/invUrl6');
-const InvUrl7 = require('../../model/Inventory_model/invUrl7');
-const InvUrl8 = require('../../model/Inventory_model/invUrl8');
-const NoProduct= require('../../model/Inventory_model/noProduct')
 const InvProduct = require('../../model/Inventory_model/invProduct');
 const AutoFetchData = require('../../model/Inventory_model/autofetchdata');
-const Backup= require('../../model/Inventory_model/backup')
+const Backup = require('../../model/Inventory_model/backup')
 const Upc = require('../../model/Brand_model/upc');
 const xlsx = require('xlsx')
 const fs = require('fs');
@@ -22,7 +14,7 @@ const path = require('path');
 
 
 // ---------brand search result------
-exports.downloadfinalSheet = async(req, res) => {
+exports.downloadfinalSheet = async (req, res) => {
     try {
         const amz = await AvailableProduct.find();
         const blk = await Product.find();
@@ -93,7 +85,7 @@ exports.downloadfinalSheet = async(req, res) => {
 };
 
 // ---------download upc list scrapped from brand url----------
-exports.downloadExcel = async(req, res) => {
+exports.downloadExcel = async (req, res) => {
     try {
         const data = await Upc.find();
         const mergedArray = data.map(item => item.upc).flat();
@@ -119,7 +111,7 @@ exports.downloadExcel = async(req, res) => {
     }
 }
 // ---------download inventory updated sheet----------
-exports.downloadInvSheet = async(req, res) => {
+exports.downloadInvSheet = async (req, res) => {
     try {
         const data = await AutoFetchData.find();
         var jsondata = data.map((item) => {
@@ -141,9 +133,9 @@ exports.downloadInvSheet = async(req, res) => {
             }
         });
         console.log(jsondata.length)
-       let udata=jsondata.filter((product, index, self) => 
+        let udata = jsondata.filter((product, index, self) =>
             index === self.findIndex(p => p['Input UPC'] === product['Input UPC'])
-          );
+        );
         console.log(data.length)
 
         const worksheet = xlsx.utils.json_to_sheet(udata);
@@ -165,151 +157,38 @@ exports.downloadInvSheet = async(req, res) => {
 };
 
 // -----------upload asin-scope data-------------
-exports.uploaddata = async(req, res) => {
-        try {
-            const file = req.file;
-            if (!file) {
-                return res.status(400).send('No file uploaded.');
-            }
-            // Load the uploaded Excel file
-            const workbook = xlsx.readFile(file.path);
-            const sheetName = workbook.SheetNames[0]; // Read first sheet
-            const sheet = workbook.Sheets[sheetName];
-            const data = xlsx.utils.sheet_to_json(sheet);
-            const filteredData = data.filter(row => row.ASIN !== '-');
-            await AvailableProduct.deleteMany();
-            await AvailableProduct.insertMany(filteredData);
-            res.status(200).send("File uploaded successfully")
-        } catch (err) {
-            console.log(err);
-            res.send(err);
+exports.uploaddata = async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).send('No file uploaded.');
         }
-};
-
-// ----------- upload file for invontory update-------
-const donetwo = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new InvUrl1({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    var urls1 = new InvUrl1({ url: firstHalf });
-    urls1.save();
-    if (middleIndex < arr.length) {
-        const secondHalf = arr.slice(middleIndex);
-        var urls2 = new InvUrl2({ url: secondHalf });
-        urls2.save();
+        // Load the uploaded Excel file
+        const workbook = xlsx.readFile(file.path);
+        const sheetName = workbook.SheetNames[0]; // Read first sheet
+        const sheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(sheet);
+        const filteredData = data.filter(row => row.ASIN !== '-');
+        await AvailableProduct.deleteMany();
+        await AvailableProduct.insertMany(filteredData);
+        res.status(200).send("File uploaded successfully")
+    } catch (err) {
+        console.log(err);
+        res.send(err);
     }
 };
 
-const dthreefour = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new InvUrl3({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    var urls3 = new InvUrl3({ url: firstHalf });
-    urls3.save();
-    if (middleIndex < arr.length) {
-        const secondHalf = arr.slice(middleIndex);
-        var urls4 = new InvUrl4({ url: secondHalf });
-        urls4.save();
-    }
-};
-
-const dfivesix = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new InvUrl5({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    var urls3 = new InvUrl5({ url: firstHalf });
-    urls3.save();
-    if (middleIndex < arr.length) {
-        const secondHalf = arr.slice(middleIndex);
-        var urls6 = new InvUrl6({ url: secondHalf });
-        urls6.save();
-    }
-};
-
-const dseveneight = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new InvUrl7({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    var urls3 = new InvUrl7({ url: firstHalf });
-    const r1 = urls3.save();
-    if (middleIndex < arr.length) {
-        const secondHalf = arr.slice(middleIndex);
-        var urls4 = new InvUrl8({ url: secondHalf });
-        urls4.save();
-    }
-};
-
-const divideArray1 = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new InvUrl1({ url: arr });
-        await ar1.save();
-        return true;
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-    const secondHalf = arr.slice(middleIndex);
-    donetwo(firstHalf);
-    dthreefour(secondHalf);
-};
-
-const divideArray2 = async(arr) => {
-    if (arr.length === 0) return;
-    if (arr.length === 1) {
-        ar1 = new InvUrl2({ url: arr });
-        await ar1.save();
-    }
-    const middleIndex = Math.ceil(arr.length / 2);
-    const firstHalf = arr.slice(0, middleIndex);
-
-    const secondHalf = arr.slice(middleIndex);
-    dfivesix(firstHalf);
-    dseveneight(secondHalf);
-};
-
-exports.uploadinvdata = async(req, res) => {
-    let backupdata= await AutoFetchData.find();
-    const backup= new Backup({data:backupdata});
+exports.uploadinvdata = async (req, res) => {
+    let backupdata = await AutoFetchData.find();
+    const backup = new Backup({ data: backupdata });
     await backup.save();
     await InvProduct.deleteMany();
     await InvUrl1.deleteMany();
-    await InvUrl2.deleteMany();
-    await InvUrl3.deleteMany();
-    await InvUrl4.deleteMany();
-    await InvUrl5.deleteMany();
-    await InvUrl6.deleteMany();
-    await InvUrl7.deleteMany();
-    await InvUrl8.deleteMany();
-    await InvUpc.deleteMany();
     await AutoFetchData.deleteMany();
-    await NoProduct.deleteMany();
-    await Serial.deleteMany();
-    let serialNum = new Serial({ start_index1: 0, start_index2: 0, start_index3: 0, start_index4: 0, start_index5: 0, start_index6: 0, start_index7: 0, start_index8: 0,start_error_index:0, time: 0 });
-    await serialNum.save();
 
     const file = req.file;
     if (!file) {
-        return res.status(400).send('No file uploaded.'); 
+        return res.status(400).send('No file uploaded.');
     }
     // Load the uploaded Excel file
     const workbook = xlsx.readFile(file.path);
@@ -318,14 +197,17 @@ exports.uploadinvdata = async(req, res) => {
 
     // Convert the sheet to JSON
     const data1 = xlsx.utils.sheet_to_json(sheet);
+    console.log(data1.length);
     const data = data1.filter((d) => d['ASIN'] !== undefined && d['Input UPC'] !== undefined);
-    if (data.length === 0) {
+    console.log(data.length)
+    const modifiedurldata = data.map((d) => ({ ...d, 'Product link': d['Product link'].split(".html")[0] + ".html" }))
+    if (modifiedurldata.length === 0) {
         console.log("no data")
         return res.status(400).json({ msg: 'No valid data to process' });
     }
-    InvProduct.insertMany(data)
-        .then(async() => {
-            const uniqueUpc = data
+    InvProduct.insertMany(modifiedurldata)
+        .then(async () => {
+            const uniqueUpc = modifiedurldata
                 .map(item => item['Input UPC'].replace("UPC", "")) // Extract only the URLs
                 .filter((upc, index, self) => self.indexOf(upc) === index);
             if (uniqueUpc.length > 0) {
@@ -333,17 +215,72 @@ exports.uploadinvdata = async(req, res) => {
                 await upcs.save();
             }
         })
-        .then(async() => {
-            const uniqueUrls = data
-                .map(item => item['Product link'].split(".html")[0] + ".html")
+        .then(async () => {
+            const uniqueUrls = modifiedurldata
+                .map(item => item['Product link'])
                 .filter((url, index, self) => self.indexOf(url) === index);
 
             if (uniqueUrls.length > 0) {
-                const middleIndex = Math.ceil(uniqueUrls.length / 2);
-                const firstHalf = uniqueUrls.slice(0, middleIndex);
-                divideArray1(firstHalf);
-                const secondHalf = uniqueUrls.slice(middleIndex);
-                divideArray2(secondHalf)
+                let urls = new InvUrl1({ url: uniqueUrls });
+                await urls.save();
+                res.status(200).json({ msg: 'Data successfully uploaded' });
+            } else {
+                res.status(200).json({ msg: 'No unique URLs to process' });
+            }
+        })
+        .catch(err => {
+            console.error('Error saving data to MongoDB:', err);
+            res.status(500).json({ msg: 'Error saving data to MongoDB' });
+        });
+};
+
+exports.uploadinvdata2 = async (req, res) => {
+    let backupdata = await AutoFetchData.find();
+    const backup = new Backup({ data: backupdata });
+    await backup.save();
+    await InvProduct.deleteMany();
+    await InvUrl1.deleteMany();
+    await AutoFetchData.deleteMany();
+
+    const file = req.file;
+    if (!file) {
+        return res.status(400).send('No file uploaded.');
+    }
+    // Load the uploaded Excel file
+    const workbook = xlsx.readFile(file.path);
+    const sheetName = workbook.SheetNames[2]; // Read first sheet
+    const sheet = workbook.Sheets[sheetName];
+
+    // Convert the sheet to JSON
+    const data1 = xlsx.utils.sheet_to_json(sheet);
+    console.log(data1.length);
+    const data = data1.filter((d) => d['ASIN'] !== undefined && d['upc'] !== undefined);
+    console.log(data.length)
+    const modifiedurldata = data.map((d) => 
+        ({ 
+            'Input UPC': d['For Scrapping use'],
+            'ASIN':d.ASIN,
+            'SKU':d['Amazon SKU'],
+            'Product price': d['Product Cost'],
+            'Available Quantity':0,
+            'Product link': d['Vendor URL'].split(".html")[0] + ".html" ,
+            'Fulfillment':d['Fulfillment Shipping'],
+            'Amazon Fees%':d['Fees%'],
+            'Shipping Template':d['Shipping template used on AZ']
+        }))
+    if (modifiedurldata.length === 0) {
+        console.log("no data")
+        return res.status(400).json({ msg: 'No valid data to process' });
+    }
+    InvProduct.insertMany(modifiedurldata)
+        .then(async () => {
+            const uniqueUrls = modifiedurldata
+                .map(item => item['Product link'])
+                .filter((url, index, self) => self.indexOf(url) === index);
+
+            if (uniqueUrls.length > 0) {
+                let urls = new InvUrl1({ url: uniqueUrls });
+                await urls.save();
                 res.status(200).json({ msg: 'Data successfully uploaded' });
             } else {
                 res.status(200).json({ msg: 'No unique URLs to process' });

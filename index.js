@@ -16,7 +16,7 @@ const port = process.env.PORT || 10000;
 
 
 const corsOptions = {
-    origin: 'https://belk-brand-prem.vercel.app',
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
 };

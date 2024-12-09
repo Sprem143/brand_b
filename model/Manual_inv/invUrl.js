@@ -6,4 +6,4 @@ const urlSchema = new mongoose.Schema({
     }
 
 });
-module.exports = mongoose.model('MInvUrl5', urlSchema);
+module.exports = mongoose.model('MInvUrl', urlSchema);
