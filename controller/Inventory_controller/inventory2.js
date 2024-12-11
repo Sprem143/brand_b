@@ -8,11 +8,47 @@ const apikey = process.env.API_KEY;
 var shouldfetch;
 var data;
 
+function fetchoffer(html,couponcode) {
+    try {
+        const $ = cheerio.load(html);
+        let productData = null;
+        $('script').each((index, element) => {
+            const scriptContent = $(element).html();
+            const regex = /window\.product\s*=\s*({[^]*?});/;
+            const match = scriptContent.match(regex);
+            if (match) {
+                try {
+                    productData = JSON.parse(match[1]);
+
+                } catch (error) {
+                    console.error("Failed to parse JSON:", error);
+                }
+            }
+        });
+
+        if (productData) {
+        let eligiblecoupon;
+        var couponPrice;
+         if(Array.isArray(productData.coupon.coupons)){
+            eligiblecoupon= productData.coupon.coupons.filter((c)=> c.couponCode===couponcode && c.isBelkTenderCoupon===false)
+         }
+         if(Array.isArray(eligiblecoupon)  && eligiblecoupon.length>0){
+            couponPrice= eligiblecoupon[0].promoPrice.min;
+            return couponPrice>0 ? couponPrice :null;
+         } 
+        } else {
+            console.log("Product data not found in HTML.");
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching HTML:", error);
+        return null;
+    }
+}
+
 const fetchdata = async () => {
     if(shouldfetch){
         data = await InvProduct.find();
-    }
-    else{
     }
     return data;
 };
@@ -36,7 +72,7 @@ async function fetchAndExtractVariable(html, variableName) {
     return variableValue;
 }
 
-const saveData = async (utagData, url,id) => {
+const saveData = async (utagData, url,id,couponcodeprice) => {
     let alldata = await fetchdata();
     var datas=alldata.filter((obj)=> obj['Product link']==url);
     const price = utagData.sku_price;
@@ -62,8 +98,8 @@ const saveData = async (utagData, url,id) => {
                     'Product link': data['Product link'],
                     'Current Quantity': matchedProduct.quantity,
                     'Product price': data['Product price'],
-                    'Current Price': Number(coupon) > 0 && !matchedProduct.onsale
-                        ? Number(Number(matchedProduct.price * (1 - coupon / 100)).toFixed(2))
+                    'Current Price': Number(couponcodeprice) > 0 && !matchedProduct.onsale
+                        ? Number(couponcodeprice).toFixed(2)
                         : Number(Number(matchedProduct.price).toFixed(2)),
                     'Image link': matchedProduct.imgurl,
                     'Input UPC': 'UPC' + matchedProduct.upc,
@@ -102,6 +138,7 @@ exports.autofetchdata2 = async (req, res) => {
         const html = await request.text();
         var utagData;
         utagData = await fetchAndExtractVariable(html, 'utag_data');
+
         if (!utagData) {
             await delay(5000);
             const request = await client.get(url, {
@@ -111,10 +148,11 @@ exports.autofetchdata2 = async (req, res) => {
             const html = await request.text();
             utagData = await fetchAndExtractVariable(html, 'utag_data');
         }
+        const couponcode= utagData['product_promotedCoupon'][0].couponCode;
+        const couponcodeprice=couponcode!==undefined? fetchoffer(html,couponcode): null;
         if (utagData) {
             if (utagData.sku_inventory == []) {
                 let oosdata = await InvProduct.find({ 'Product link': url })
-                // await InvProduct.deleteMany({ 'Product link': url });
                 let oosproduct = oosdata.map((data) => {
                     return {
                         'Product link': url,
@@ -166,7 +204,7 @@ exports.autofetchdata2 = async (req, res) => {
                 )
                 return res.status(200).send(true);
             }
-            await saveData(utagData, url,id);
+            await saveData(utagData, url,id,couponcodeprice);
             res.status(200).send(true);
         } else {
             throw new Error('Invalid URL or URL is not related to belk');
