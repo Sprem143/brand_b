@@ -7,7 +7,8 @@ const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const apikey = process.env.API_KEY;
 var shouldfetch;
 var data;
-function fetchoffer(html,couponcode) {
+
+function fetchoffer(html, couponcode) {
     try {
         const $ = cheerio.load(html);
         let productData = null;
@@ -26,27 +27,26 @@ function fetchoffer(html,couponcode) {
         });
 
         if (productData) {
-        let eligiblecoupon;
-        var couponPrice;
-         if(Array.isArray(productData.coupon.coupons)){
-            eligiblecoupon= productData.coupon.coupons.filter((c)=> c.couponCode===couponcode && c.isBelkTenderCoupon===false)
-         }
-         if(Array.isArray(eligiblecoupon)  && eligiblecoupon.length>0){
-            couponPrice= eligiblecoupon[0].promoPrice.min;
-            return couponPrice>0 ? couponPrice :null;
-         } 
+            let eligiblecoupon;
+            var couponPrice;
+            if (Array.isArray(productData.coupon.coupons)) {
+                eligiblecoupon = productData.coupon.coupons.filter((c) => c.couponCode === couponcode && c.isBelkTenderCoupon === false)
+            }
+            if (Array.isArray(eligiblecoupon) && eligiblecoupon.length > 0) {
+               return true;
+            }
         } else {
             console.log("Product data not found in HTML.");
-            return null;
+            return false;
         }
     } catch (error) {
         console.error("Error fetching HTML:", error);
-        return null;
+        return false;
     }
 }
 
 const fetchdata = async () => {
-    if(shouldfetch){
+    if (shouldfetch) {
         data = await InvProduct.find();
     }
     return data;
@@ -71,9 +71,9 @@ async function fetchAndExtractVariable(html, variableName) {
     return variableValue;
 }
 
-const saveData = async (utagData, url,id,couponcodeprice) => {
+const saveData = async (utagData, url, id, couponcodeprice) => {
     let alldata = await fetchdata();
-    var datas=alldata.filter((obj)=> obj['Product link']==url);
+    var datas = alldata.filter((obj) => obj['Product link'] == url);
     const price = utagData.sku_price;
     const upc = utagData.sku_upc;
     const quantity = utagData.sku_inventory;
@@ -98,7 +98,7 @@ const saveData = async (utagData, url,id,couponcodeprice) => {
                     'Current Quantity': matchedProduct.quantity,
                     'Product price': data['Product price'],
                     'Current Price': Number(couponcodeprice) > 0 && !matchedProduct.onsale
-                        ? Number(couponcodeprice).toFixed(2)
+                        ? Number(Number(matchedProduct.price * (1 - coupon / 100)).toFixed(2))
                         : Number(Number(matchedProduct.price).toFixed(2)),
                     'Image link': matchedProduct.imgurl,
                     'Input UPC': 'UPC' + matchedProduct.upc,
@@ -118,7 +118,7 @@ const saveData = async (utagData, url,id,couponcodeprice) => {
     }
     await AutoFetchData.insertMany(filterData);
     await InvUrl1.updateOne(
-        { _id:id },
+        { _id: id },
         { $pull: { url: url } }
     )
 };
@@ -128,8 +128,8 @@ exports.autofetchdata = async (req, res) => {
     try {
         const client = new ZenRows(apikey);
         const url = req.body.link;
-        const id= req.body.id
-        shouldfetch= req.body.isfirst;
+        const id = req.body.id
+        shouldfetch = req.body.isfirst;
         const request = await client.get(url, {
             premium_proxy: true,
             js_render: true,
@@ -147,8 +147,8 @@ exports.autofetchdata = async (req, res) => {
             const html = await request.text();
             utagData = await fetchAndExtractVariable(html, 'utag_data');
         }
-        const couponcode= utagData['product_promotedCoupon'][0].couponCode;
-        const couponcodeprice=couponcode!==undefined? fetchoffer(html,couponcode): null;
+        const couponcode = utagData['product_promotedCoupon'][0].couponCode;
+        const isCoupon = couponcode !== undefined ? fetchoffer(html, couponcode) : null;
         if (utagData) {
             if (utagData.sku_inventory == []) {
                 let oosdata = await InvProduct.find({ 'Product link': url })
@@ -171,7 +171,7 @@ exports.autofetchdata = async (req, res) => {
                 })
                 await AutoFetchData.insertMany(oosproduct);
                 await InvUrl1.updateOne(
-                    { _id:id },
+                    { _id: id },
                     { $pull: { url: url } }
                 )
                 return res.status(200).send(true);
@@ -198,12 +198,12 @@ exports.autofetchdata = async (req, res) => {
                 })
                 await AutoFetchData.insertMany(oosproduct);
                 await InvUrl1.updateOne(
-                    { _id:id },
+                    { _id: id },
                     { $pull: { url: url } }
                 )
                 return res.status(200).send(true);
             }
-            await saveData(utagData, url,id,couponcodeprice);
+            await saveData(utagData, url, id, isCoupon);
             res.status(200).send(true);
         } else {
             throw new Error('Invalid URL or URL is not related to belk');
