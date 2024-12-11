@@ -7,7 +7,6 @@ const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const apikey = process.env.API_KEY;
 var shouldfetch;
 var data;
-
 function fetchoffer(html,couponcode) {
     try {
         const $ = cheerio.load(html);
