@@ -112,7 +112,7 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
 };
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-exports.autofetchdata = async (req, res) => {
+exports.autofetchdata6 = async (req, res) => {
     try {
         const client = new ZenRows(apikey);
         const url = req.body.link;
