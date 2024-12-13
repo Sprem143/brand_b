@@ -5,8 +5,6 @@ const cheerio = require('cheerio');
 const { ZenRows } = require("zenrows");
 const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const apikey = process.env.API_KEY;
-var shouldfetch;
-var data;
 
 function fetchoffer(html, couponcode) {
     try {
@@ -28,8 +26,7 @@ function fetchoffer(html, couponcode) {
 
         if (productData) {
             let eligiblecoupon;
-            var couponPrice;
-            if (Array.isArray(productData.coupon.coupons)) {
+            if (productData.coupon && Array.isArray(productData.coupon.coupons)) {
                 eligiblecoupon = productData.coupon.coupons.filter((c) => c.couponCode === couponcode && c.isBelkTenderCoupon === false)
             }
             if (Array.isArray(eligiblecoupon) && eligiblecoupon.length > 0) {
@@ -44,14 +41,6 @@ function fetchoffer(html, couponcode) {
         return false;
     }
 }
-
-const fetchdata = async () => {
-    if (shouldfetch) {
-        data = await InvProduct.find();
-    }
-    return data;
-};
-
 
 async function fetchAndExtractVariable(html, variableName) {
     const $ = cheerio.load(html);
@@ -70,10 +59,9 @@ async function fetchAndExtractVariable(html, variableName) {
     });
     return variableValue;
 }
-
 const saveData = async (utagData, url, id, couponcodeprice) => {
-    let alldata = await fetchdata();
-    var datas = alldata.filter((obj) => obj['Product link'] == url);
+    var datas = await InvProduct.find({'Product link':url});
+    console.log('data', datas)
     const price = utagData.sku_price;
     const upc = utagData.sku_upc;
     const quantity = utagData.sku_inventory;
@@ -129,7 +117,6 @@ exports.autofetchdata3 = async (req, res) => {
         const client = new ZenRows(apikey);
         const url = req.body.link;
         const id = req.body.id
-        shouldfetch = req.body.isfirst;
         const request = await client.get(url, {
             premium_proxy: true,
             js_render: true,
