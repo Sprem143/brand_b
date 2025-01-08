@@ -12,7 +12,7 @@ exports.sendproductsurl = async(req, res) => {
         const upcs = await Upc.find();
 
         const mergedArray = data.map(item => item.producturl).flat();
-        res.status(200).json({ url: mergedArray, upc: upcs, id:data[0]._id });
+        res.status(200).json({ url: mergedArray, upc: upcs, id:data[0].producturl._id });
     } catch (err) {
         console.log(err);
         res.status(500).send(err);
