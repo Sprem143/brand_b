@@ -11,8 +11,10 @@ exports.sendproductsurl = async(req, res) => {
         const data = await BrandUrl.find();
         const upcs = await Upc.find();
 
+      if(data.length>0){
         const mergedArray = data.map(item => item.producturl).flat();
         res.status(200).json({ url: mergedArray, upc: upcs, id:data[0].producturl._id });
+      }
     } catch (err) {
         console.log(err);
         res.status(500).send(err);
@@ -22,9 +24,13 @@ exports.sendproductsurl = async(req, res) => {
 exports.totalproducts=async(req,res)=>{
 try{
      let products= await Product.countDocuments();
-     let urls= await BrandUrl.find();
-     let num2= urls[0].producturl;
-     res.status(200).json({status:true, num:products, num2:num2});
+    if(products.length>0){
+        let urls= await BrandUrl.find();
+        let num2= urls[0].producturl;
+        res.status(200).json({status:true, num:products, num2:num2});
+    }else{
+        res.status(404).json({status:false, msg:"No data found"})
+    }
 }catch(err){
     console.log(err)
     res.status(500).json({status:false, msg:err})
