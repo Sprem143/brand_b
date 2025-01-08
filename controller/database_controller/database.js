@@ -23,14 +23,14 @@ exports.sendproductsurl = async(req, res) => {
 // --------brand scrappint total products-------------
 exports.totalproducts=async(req,res)=>{
 try{
-     let products= await Product.find();
-    if(products.length>0){
-        let urls= await BrandUrl.find();
-        let num2= urls[0].producturl;
-        res.status(200).json({status:true, num:products, num2:num2});
-    }else{
-        res.status(404).json({status:false, msg:"No data found"})
+     let products= await Product.countDocuments();
+     let urls= await BrandUrl.find();
+     console.log(urls)
+     var num2;
+    if(urls.length>0){
+       num2= urls[0].producturl;
     }
+ res.status(200).json({status:true, num:products, num2:num2});
 }catch(err){
     console.log(err)
     res.status(500).json({status:false, msg:err})
