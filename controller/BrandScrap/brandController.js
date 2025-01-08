@@ -1,25 +1,24 @@
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
+
 require('dotenv').config();
 const apikey = process.env.API_KEY
-const BrandPage = require('../model/Brand_model/brandpage');
-const BrandUrl = require('../model/Brand_model/brandurl');
+const BrandPage = require('../../model/Brand_model/brandpage');
+const BrandUrl = require('../../model/Brand_model/brandurl');
 const axios = require('axios');
 const cheerio = require('cheerio')
-const Product = require('../model/Brand_model/products');
-const Upc = require('../model/Brand_model/upc');
+const Product = require('../../model/Brand_model/products');
+const Upc = require('../../model/Brand_model/upc');
 
 
-exports.fetchbrand = async(req, res) => {
+exports.fetchbrand = async (req, res) => {
     try {
         await BrandPage.deleteMany();
         await BrandUrl.deleteMany();
+        await Product.deleteMany();
+        await Upc.deleteMany();
 
         const { url, num } = req.body
         generateurl(num, url);
-        console.log(url)
-            // Validate URL
+
         if (!url || typeof url !== 'string' || !url.startsWith('http')) {
             return res.status(400).send('Invalid URL');
         }
@@ -46,7 +45,6 @@ exports.fetchbrand = async(req, res) => {
                 productUrls.push(url);
             }
         });
-        console.log(productUrls.length)
         if (productUrls.length > 0) {
             const productarr = productUrls.map(p => 'https://www.belk.com' + p);
             const products = new BrandUrl({ producturl: productarr });
@@ -54,13 +52,8 @@ exports.fetchbrand = async(req, res) => {
 
             const pages = await BrandPage.find();
             const secondurl = pages[0].url;
-            // Proceed to the second process after the first completes
-            console.log("calling second page")
-            await handleSecondPageScraping(secondurl); // Call the second scraping function here
+            await handleSecondPageScraping(secondurl);
         }
-        // let arr = await BrandUrl.find();
-        // let len = arr.map((total, a) => total + a.length, 0);
-        // console.log(len)
         res.status(200).json({ msg: "All pages's urls fetched successfully" })
     } catch (err) {
         console.error(err);
@@ -69,11 +62,11 @@ exports.fetchbrand = async(req, res) => {
 };
 
 // Function to handle the second page scraping
-const handleSecondPageScraping = async(urls) => {
+const handleSecondPageScraping = async (urls) => {
+    console.log("second page")
     let index = 0;
     while (index < urls.length) {
         const url = urls[index]
-        console.log(url);
         let response = await axios({
             url: 'https://api.zenrows.com/v1/',
             method: 'GET',
@@ -96,18 +89,24 @@ const handleSecondPageScraping = async(urls) => {
                 productUrls.push(url);
             }
         });
-        console.log(productUrls.length)
 
         if (productUrls.length > 0) {
             const productarr = productUrls.map(p => 'https://www.belk.com' + p);
-            const products = new BrandUrl({ producturl: productarr });
-            const r = await products.save();
+            let prevarr = await BrandUrl.find();
+            let newarrlist = [...prevarr[0].producturl, ...productarr];
+            let arrid = prevarr[0]._id
+            const r = await BrandUrl.findByIdAndUpdate(
+                { _id: arrid },
+                { $set: { producturl: newarrlist } },
+                { new: true }
+            )
             r ? index++ : index
         }
     }
 };
 
-const generateurl = async(num, url) => {
+
+const generateurl = async (num, url) => {
     let n1 = 60;
     const urls = parseInt(num / 60) - 1;
     let index = 0;
@@ -177,7 +176,7 @@ async function fetchProductData(html) {
 }
 
 
-const getupc = async(url) => {
+const getupc = async (url) => {
     try {
         let response = await axios({
             url: 'https://api.zenrows.com/v1/',
@@ -205,7 +204,6 @@ const getupc = async(url) => {
         );
 
         var color_size = {};
-
         for (const [productId, sizes] of Object.entries(id_size)) {
             const color = id_color[productId]; // Get the color from obj1 based on the productId
             for (const [upc, size] of Object.entries(sizes)) {
@@ -244,8 +242,10 @@ const getupc = async(url) => {
             }));
             // ---------removing out of stock products----------
             const filterProduct = products.filter((p) => p.quantity > 5);
-            let saveProducts = await Product.insertMany(filterProduct).catch(err => console.error("Error saving products:", err));
+            let saveProducts = await Product.insertMany(filterProduct)
+                .catch(err => console.error("Error saving products:", err));
             if (result && saveProducts) {
+
                 return 1;
             }
         } else {
@@ -256,30 +256,25 @@ const getupc = async(url) => {
         return 0;
     }
 };
-exports.savedata=async(req,res)=>{
-    let products= await Product.find();
-    console.log(products.length)
-     res.send(products)
-}
-exports.getproduct = async(req, res) => {
-    try {
-        await Product.deleteMany();
-        const urlarray = await BrandUrl.find({});
-        for (const urlarr of urlarray) {
-            const urls = urlarr.producturl;
-            for (let index = 0; index < urls.length;) {
-                console.log(urls[index]);
-                console.log(index)
-                let result = await getupc(urls[index]); // Await getupc result
 
-                if (result === 1) {
-                    console.log(true);
-                    index++
-                } else {
-                    console.log("UPC data not found or error occurred for:", urls[index]);
-                }
+exports.getproduct = async (req, res) => {
+    try {
+        const urlarray = await BrandUrl.find({});
+        let arrayid = urlarray[0]._id
+        const urls = urlarray[0].producturl;
+        for (let index = 0; index < urls.length;) {
+            let result = await getupc(urls[index]);
+            if (result === 1) {
+                await BrandUrl.updateOne(
+                    { _id: arrayid },
+                    { $pull: { producturl: urls[index] } }
+                )
+                index++
+            } else {
+                console.log("UPC data not found or error occurred for:", urls[index]);
             }
         }
+
 
         res.send("Product data fetched successfully");
 

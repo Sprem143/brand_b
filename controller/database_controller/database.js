@@ -1,9 +1,9 @@
 const BrandUrl = require('../../model/Brand_model/brandurl');
-const Serial = require('../../model/Inventory_model/serial')
 const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const AutoFetchData = require('../../model/Inventory_model/autofetchdata');
 const Upc = require('../../model/Brand_model/upc');
-const Backup= require('../../model/Inventory_model/backup')
+const Backup= require('../../model/Inventory_model/backup');
+const Product = require('../../model/Brand_model/products');
 
 // -----------send url list of product to home page------
 exports.sendproductsurl = async(req, res) => {
@@ -12,13 +12,24 @@ exports.sendproductsurl = async(req, res) => {
         const upcs = await Upc.find();
 
         const mergedArray = data.map(item => item.producturl).flat();
-        res.status(200).json({ url: mergedArray, upc: upcs });
+        res.status(200).json({ url: mergedArray, upc: upcs, id:data[0]._id });
     } catch (err) {
         console.log(err);
         res.status(500).send(err);
     }
 }
-
+// --------brand scrappint total products-------------
+exports.totalproducts=async(req,res)=>{
+try{
+     let products= await Product.countDocuments();
+     let urls= await BrandUrl.find();
+     let num2= urls[0].producturl;
+     res.status(200).json({status:true, num:products, num2:num2});
+}catch(err){
+    console.log(err)
+    res.status(500).json({status:false, msg:err})
+}
+}
 exports.deletebackup=async(req,res)=>{
     try{
         const {name}= req.body;

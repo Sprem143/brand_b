@@ -1,7 +1,6 @@
 const AvailableProduct = require('../../model/Brand_model/AvailableProduct');
 const FinalProduct = require('../../model/Brand_model/finalProduct')
 const Product = require('../../model/Brand_model/products');
-const Serial = require('../../model/Inventory_model/serial')
 const InvUpc = require('../../model/Inventory_model/invUpc');
 const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const InvProduct = require('../../model/Inventory_model/invProduct');
@@ -11,7 +10,6 @@ const Upc = require('../../model/Brand_model/upc');
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
-
 
 // ---------brand search result------
 exports.downloadfinalSheet = async (req, res) => {
@@ -241,21 +239,17 @@ exports.uploadinvdata2 = async (req, res) => {
     await InvProduct.deleteMany();
     await InvUrl1.deleteMany();
     await AutoFetchData.deleteMany();
-
     const file = req.file;
     if (!file) {
         return res.status(400).send('No file uploaded.');
     }
-    // Load the uploaded Excel file
+
     const workbook = xlsx.readFile(file.path);
     const sheetName = workbook.SheetNames[2]; // Read first sheet
     const sheet = workbook.Sheets[sheetName];
 
-    // Convert the sheet to JSON
     const data1 = xlsx.utils.sheet_to_json(sheet);
-    console.log(data1.length);
     const data = data1.filter((d) => d['ASIN'] !== undefined && d['upc'] !== undefined);
-    console.log(data.length)
     const modifiedurldata = data.map((d) => 
         ({ 
             'Input UPC': d['For Scrapping use'],
