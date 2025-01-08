@@ -13,7 +13,7 @@ exports.sendproductsurl = async(req, res) => {
 
       if(data.length>0){
         const mergedArray = data.map(item => item.producturl).flat();
-        res.status(200).json({ url: mergedArray, upc: upcs, id:data[0].producturl._id });
+        res.status(200).json({ url: mergedArray, upc: upcs, id:data[0]._id });
       }
     } catch (err) {
         console.log(err);
@@ -25,7 +25,6 @@ exports.totalproducts=async(req,res)=>{
 try{
      let products= await Product.countDocuments();
      let urls= await BrandUrl.find();
-     console.log(urls)
      var num2;
     if(urls.length>0){
        num2= urls[0].producturl;
