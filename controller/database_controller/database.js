@@ -23,7 +23,7 @@ exports.sendproductsurl = async(req, res) => {
 // --------brand scrappint total products-------------
 exports.totalproducts=async(req,res)=>{
 try{
-     let products= await Product.countDocuments();
+     let products= await Product.find();
     if(products.length>0){
         let urls= await BrandUrl.find();
         let num2= urls[0].producturl;
