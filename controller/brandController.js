@@ -108,7 +108,6 @@ const handleSecondPageScraping = async(urls) => {
 };
 
 const generateurl = async(num, url) => {
-    if(url.includes('&')){
         let a= url.split('?');
         let b= a[1].split('&')
         let l= a[0]+'?'+b[1]+'&'+b[2]+'&'+b[0]
@@ -126,23 +125,7 @@ const generateurl = async(num, url) => {
             console.log(urllist)
             const pages = new BrandPage({ url: urllist });
             await pages.save();
-        }
-    }else{
-        let n1 = 60;
-        let urls = parseInt(num / 60) - 1;
-        let index = 0;
-        let urllist = [];
-        while (index <= urls) {
-            urllist.push(url + `&start=${n1}&sz=60`);
-            n1 = n1 + 60;
-            index++
-        }
-        if (urllist.length > 0) {
-            console.log(urllist)
-            let pages = new BrandPage({ url: urllist });
-            await pages.save();
-        }
-    } 
+        }   
 }
 
 // --------start scrapping upc--------
