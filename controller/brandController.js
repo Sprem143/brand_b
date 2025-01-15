@@ -108,7 +108,7 @@ const handleSecondPageScraping = async(urls) => {
 };
 
 const generateurl = async(num, url) => {
-    if(url.includes('prefn1')){
+    if(url.includes('&')){
         let a= url.split('?');
         let b= a[1].split('&')
         let l= a[0]+'?'+b[1]+'&'+b[2]+'&'+b[0]
@@ -138,6 +138,7 @@ const generateurl = async(num, url) => {
             index++
         }
         if (urllist.length > 0) {
+            console.log(urllist)
             let pages = new BrandPage({ url: urllist });
             await pages.save();
         }
