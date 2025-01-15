@@ -73,18 +73,6 @@ exports.getinvproduct = async(req, res) => {
     }
 
 exports.settime = async(req, res) => {
-
-    const num = req.body.time
-
-    Serial.findOneAndUpdate({}, { time: num }, { new: true })
-        .then(updatedDoc => {
-            if (updatedDoc) {
-                res.status(200).json({ status: true })
-            }
-        })
-        .catch(error => {
-            console.error("Error updating document:", error);
-        });
 }
 
 exports.getupdatedproduct = async(req, res) => {
