@@ -111,7 +111,8 @@ const generateurl = async(num, url) => {
         let a= url.split('?');
         let b= a[1].split('&')
         let l= a[0]+'?'+b[1]+'&'+b[2]+'&'+b[0]
-    
+    console.log('url')
+    console.log(l)
         let n1 = 60;
         let urls = parseInt(num / 60) - 1;
         let index = 0;
