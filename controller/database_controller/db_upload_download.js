@@ -85,10 +85,9 @@ exports.downloadfinalSheet = async (req, res) => {
 // ---------download upc list scrapped from brand url----------
 exports.downloadExcel = async (req, res) => {
     try {
-        const data = await Upc.find();
-        const mergedArray = data.map(item => item.upc).flat();
-        const jsondata = mergedArray.map((d) => ({
-            UPC: d
+        const data = await Product.find({},{upc:1, _id:0});
+        const jsondata = data.map((d) => ({
+            UPC: d.upc
         }));
         const worksheet = xlsx.utils.json_to_sheet(jsondata);
         const workbook = xlsx.utils.book_new();
