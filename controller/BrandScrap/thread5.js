@@ -4,8 +4,46 @@ const apikey = process.env.API_KEY
 const BrandUrl = require('../../model/Brand_model/brandurl');
 const cheerio = require('cheerio')
 const Product = require('../../model/Brand_model/products');
-const Upc = require('../../model/Brand_model/upc');
 const { ZenRows } = require("zenrows");
+const Varientupc = require('../../model/Brand_model/varientupc')
+
+// -------------save varient wise upc list--------
+const savevarientlist = async (html) => {
+    try {
+        const $ = cheerio.load(html);
+        let productData = null;
+        $('script').each((index, element) => {
+            const scriptContent = $(element).html();
+            const regex = /window\.product\s*=\s*({[^]*?});/;
+            const match = scriptContent.match(regex);
+            if (match) {
+                try {
+                    productData = JSON.parse(match[1]);
+
+                } catch (error) {
+                    console.error("Failed to parse JSON:", error);
+                }
+            }
+        });
+        const colorToSize = productData.colorSizeMap.colorToSize
+        const result = {};
+        for (const color in colorToSize) {
+            const values = Object.values(colorToSize[color]);
+            result[color] = values;
+        }
+        for (const i in result) {
+            let obj = {
+                varient: i,
+                upc: result[i]
+            }
+            let newvarient = new Varientupc(obj);
+            await newvarient.save();
+        }
+    } catch (err) {
+        console.log(err)
+    }
+}
+
 
 // --------start scrapping upc--------
 async function fetchAndExtractVariable(html, variableName) {
@@ -30,7 +68,6 @@ async function fetchAndExtractVariable(html, variableName) {
 async function fetchProductData(html) {
     try {
         const $ = cheerio.load(html);
-        // Extract the content of the script tag containing window.product
         let productData = null;
         $('script').each((index, element) => {
             const scriptContent = $(element).html();
@@ -48,7 +85,6 @@ async function fetchProductData(html) {
         });
 
         if (productData) {
-            // console.log("Extracted product data:", productData);
             return productData;
         } else {
             console.log("Product data not found in HTML.");
@@ -60,16 +96,42 @@ async function fetchProductData(html) {
     }
 }
 
+const generatesku=(color,size)=>{
+   if(color && size){
+    color= color.replaceAll(' ','-').replaceAll('/','-').toUpperCase();
+    let firstletter= color.charAt(0)
+    color= color.slice(1)
+    var modifiedColor=color
+    if(color.length>10){
+        let v=['A','E','I','O','U'];
+        for (let i of v){
+            modifiedColor  = color.replaceAll(i,'');
+            color= modifiedColor
+        }
+    }
+    if(color.length>10){
+        let arr= color.split('-');
+        for (let i=0; i<s.length; i++){
+            arr[i]= arr[i].slice(0,3)
+        }
+        color= arr.join('-')
+    }
+  let sku=firstletter+color+'-'+size
+  return sku;
+   }else{
+    return null
+   }
+}
 
 const getupc = async (url) => {
     try {
         const client = new ZenRows(apikey);
-               const request = await client.get(url, {
-                   premium_proxy: true,
-                   js_render: true,
-               });
-               const html = await request.text();
-
+        const request = await client.get(url, {
+            premium_proxy: true,
+            js_render: true,
+        });
+        const html = await request.text();
+        await savevarientlist(html)
         let clrsize = await fetchProductData(html);
         const size = clrsize.colorSizeMap.colorToSize
         const color = clrsize.colorSizeMap.colors;
@@ -85,18 +147,14 @@ const getupc = async (url) => {
 
         var color_size = {};
         for (const [productId, sizes] of Object.entries(id_size)) {
-            const color = id_color[productId]; // Get the color from obj1 based on the productId
+            const color = id_color[productId]; 
             for (const [upc, size] of Object.entries(sizes)) {
-                // Populate the result with the desired structure
                 color_size[upc] = { size, color };
             }
         }
 
         const data = await fetchAndExtractVariable(html, 'utag_data');
         if (data && color_size) {
-            const upclist = data.sku_upc;
-            const newUpcList = new Upc({ upc: upclist, url: url });
-            let result = await newUpcList.save();
             const name = data.product_name[0];
             const upc = data.sku_upc;
             const id = data.sku_id;
@@ -115,16 +173,17 @@ const getupc = async (url) => {
                 productid: id[index],
                 color: color_size[id[index]] ? color_size[id[index]].color : null,
                 size: color_size[id[index]] ? color_size[id[index]].size : null,
+                sku:generatesku(color_size[id[index]] ? color_size[id[index]].color : null,color_size[id[index]] ? color_size[id[index]].size : null,),
                 discount: onsale[index] ? 0 : Number(coupon),
                 offerend: offerend,
                 url: url,
                 imgurl: imgurl[index]
             }));
             // ---------removing out of stock products----------
-            const filterProduct = products.filter((p) => p.quantity > 5);
+            const filterProduct = products.filter((p) => p.quantity > 2);
             let saveProducts = await Product.insertMany(filterProduct)
                 .catch(err => console.error("Error saving products:", err));
-            if (result && saveProducts) {
+            if (saveProducts) {
                 return 1;
             }
         } else {
@@ -148,10 +207,10 @@ exports.getproduct5 = async (req, res) => {
         } else {
             console.log("UPC data not found or error occurred for:", url);
         }
-        res.status(200).json({status:true})
+        res.status(200).json({ status: true })
 
     } catch (err) {
         console.error("Error:", err);
-        res.status(500).json({status:false, error: 'Failed to fetch product data' });
+        res.status(500).json({ status: false, error: 'Failed to fetch product data' });
     }
 };
