@@ -4,9 +4,9 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
 const { autofetchdata } = require('../controller/Inventory_controller/inventory');
-const { fetchbrand, getproduct, } = require('../controller/BrandScrap/brandController');
-const {deletebackup ,getupdatedproduct, settime, sendproductsurl, getinvlinks, getinvproduct,totalproducts } = require('../controller/database_controller/database');
-const { downloadInvSheet,downloadfinalSheet, uploadinvdata,uploadinvdata2, downloadExcel, uploaddata} = require('../controller/database_controller/db_upload_download')
+const { fetchbrand, getproduct,pratical,deleteproduct,editsku } = require('../controller/BrandScrap/brandController');
+const {deletebackup ,getupdatedproduct, sendproductsurl, getinvlinks, getinvproduct,totalproducts,downloadpartiallist } = require('../controller/database_controller/database');
+const { downloadInvSheet,downloadfinalSheet, uploadinvdata,uploadinvdata2, downloadExcel, uploaddata,exp} = require('../controller/database_controller/db_upload_download')
 const {getproduct1}=require('../controller/BrandScrap/thread1')
 const {getproduct2}=require('../controller/BrandScrap/thread2')
 const {getproduct3}=require('../controller/BrandScrap/thread3')
@@ -15,6 +15,8 @@ const {getproduct5}=require('../controller/BrandScrap/thread5')
 const {getproduct6}=require('../controller/BrandScrap/thread6')
 const {getproduct7}=require('../controller/BrandScrap/thread7')
 const {getproduct8}=require('../controller/BrandScrap/thread8')
+
+router.post('/pratical', pratical)
 router.post('/fetchbrand', fetchbrand);
 router.get('/scrapproduct', getproduct);
 router.get('/download-excel', downloadExcel);
@@ -27,10 +29,13 @@ router.post('/upload', upload.single('file'), uploaddata);
 router.post('/uploadinvfile', upload.single('file'), uploadinvdata);
 router.post('/uploadinvfile2', upload.single('file'), uploadinvdata2);
 router.post('/autofetchdata', autofetchdata);
-router.post('/settime', settime);
 router.get('/getupdatedproduct', getupdatedproduct);
 router.get('/totalproducts', totalproducts);
+router.get('/downloadpartiallist', downloadpartiallist);
 router.delete('/deletebackup', deletebackup);
+router.delete('/deleteproduct', deleteproduct);
+router.get('/exp',exp)
+router.put('/editsku',editsku)
 // ---------brand url scrappint thred-------
 
 router.post('/thread1', getproduct1)
