@@ -6,16 +6,18 @@ const BrandUrl = require('../../model/Brand_model/brandurl');
 const axios = require('axios');
 const cheerio = require('cheerio')
 const Product = require('../../model/Brand_model/products');
-const Upc = require('../../model/Brand_model/upc');
-
+const Varientupc = require('../../model/Brand_model/varientupc')
+const Avlupc = require('../../model/Brand_model/avlupc')
+const { ZenRows } = require("zenrows");
+const finalProduct = require('../../model/Brand_model/finalProduct');
 
 exports.fetchbrand = async (req, res) => {
     try {
         await BrandPage.deleteMany();
         await BrandUrl.deleteMany();
         await Product.deleteMany();
-        await Upc.deleteMany();
-
+        await Varientupc.deleteMany();
+        await Avlupc.deleteMany();
         const { url, num } = req.body
         generateurl(num, url);
 
@@ -50,18 +52,20 @@ exports.fetchbrand = async (req, res) => {
             const products = new BrandUrl({ producturl: productarr });
             await products.save();
 
-            const pages = await BrandPage.find();
+            const pages = await BrandPage.find({}, { url: 1, _id: 0 });
+            console.log(pages.length)
+            console.log(pages)
             const secondurl = pages[0].url;
             await handleSecondPageScraping(secondurl);
+
         }
-        res.status(200).json({ msg: "All pages's urls fetched successfully" })
+        res.status(200).json({ status: true, msg: "All pages's urls fetched successfully" })
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'An error occurred while scraping data.' });
     }
 };
 
-// Function to handle the second page scraping
 const handleSecondPageScraping = async (urls) => {
     console.log("second page")
     let index = 0;
@@ -122,7 +126,6 @@ const generateurl = async (num, url) => {
             index++
         }
         if (urllist.length > 0) {
-            console.log(urllist)
             const pages = new BrandPage({ url: urllist });
             await pages.save();
         }
@@ -144,7 +147,7 @@ const generateurl = async (num, url) => {
 }
 
 // --------start scrapping upc--------
-async function fetchAndExtractVariable(html, variableName) {
+const fetchAndExtractVariable = async (html, variableName) => {
     const $ = cheerio.load(html);
     let variableValue;
     $('script').each((index, script) => {
@@ -235,9 +238,6 @@ const getupc = async (url) => {
 
         const data = await fetchAndExtractVariable(html, 'utag_data');
         if (data && color_size) {
-            const upclist = data.sku_upc;
-            const newUpcList = new Upc({ upc: upclist, url: url });
-            let result = await newUpcList.save();
             const name = data.product_name[0];
             const upc = data.sku_upc;
             const id = data.sku_id;
@@ -304,3 +304,104 @@ exports.getproduct = async (req, res) => {
         res.status(500).send({ error: 'Failed to fetch product data' });
     }
 };
+
+const filtervarient = async (upc) => {
+    let resu = await Varientupc.find();
+    resu.map(async (r) => {
+        if (r.upc.includes(upc)) {
+            let newupclist = new Avlupc({ upc: r.upc });
+            let re = await newupclist.save();
+            console.log(re)
+        }
+    })
+}
+
+exports.pratical = async (req, res) => {
+    try {
+        const url = req.body.url
+        console.log(url)
+        const client = new ZenRows(apikey);
+        const request = await client.get(url, {
+            premium_proxy: true,
+            js_render: true,
+        });
+        const html = await request.text();
+        const data = await fetchAndExtractVariable(html, 'utag_data');
+
+        const $ = cheerio.load(html);
+        const ids = data.sku_id;
+        const upcs = data.sku_upc
+        console.log(ids)
+        console.log(upcs)
+        let productData = null;
+        $('script').each((index, element) => {
+            const scriptContent = $(element).html();
+            const regex = /window\.product\s*=\s*({[^]*?});/;
+            const match = scriptContent.match(regex);
+            if (match) {
+                try {
+                    productData = JSON.parse(match[1]);
+
+                } catch (error) {
+                    console.error("Failed to parse JSON:", error);
+                }
+            }
+        });
+        const colorToSize = productData.colorSizeMap.colorToSize
+
+        const result = {};
+
+
+        for (const color in colorToSize) {
+            const values = Object.values(colorToSize[color]);
+            let upclist = []
+            values.forEach((v) => {
+                upclist.push(upcs[ids.indexOf(v)])
+            })
+
+            result[color] = upclist;
+        }
+        for (const i in result) {
+            let obj = {
+                varient: i,
+                upc: result[i]
+            }
+            let newvarient = new Varientupc(obj);
+            let savedata = await newvarient.save();
+            console.log(savedata)
+        }
+
+        filtervarient('0438761322886')
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+exports.deleteproduct = async (req, res) => {
+    try {
+        const { id } = req.body
+        let resp = await finalProduct.deleteOne({ _id: id });
+        console.log(resp)
+        if (resp.deletedCount == 1) {
+            res.status(200).json({ status: true })
+        }
+    } catch (err) {
+        res.status(500).json({ staus: false, msg: 'err' })
+        console.log(err)
+    }
+}
+
+exports.editsku = async (req, res) => {
+    try {
+        const id = req.body.id
+        const newsku = req.body.newsku
+        let resp = await finalProduct.findOneAndUpdate(
+            { _id: id },
+            { $set: { SKU: newsku } }
+        )
+        res.status(200).json({status:true})
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ status: false, msg: err })
+    }
+}
