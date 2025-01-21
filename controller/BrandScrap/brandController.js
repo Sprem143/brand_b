@@ -6,8 +6,8 @@ const BrandUrl = require('../../model/Brand_model/brandurl');
 const axios = require('axios');
 const cheerio = require('cheerio')
 const Product = require('../../model/Brand_model/products');
-const Varientupc = require('../../model/Brand_model/varientupc')
-const Avlupc = require('../../model/Brand_model/avlupc')
+// const Varientupc = require('../../model/Brand_model/varientupc')
+// const Avlupc = require('../../model/Brand_model/avlupc')
 const { ZenRows } = require("zenrows");
 const finalProduct = require('../../model/Brand_model/finalProduct');
 
@@ -16,7 +16,7 @@ exports.fetchbrand = async (req, res) => {
         await BrandPage.deleteMany();
         await BrandUrl.deleteMany();
         await Product.deleteMany();
-        await Varientupc.deleteMany();
+        // await Varientupc.deleteMany();
         await Avlupc.deleteMany();
         const { url, num } = req.body
         generateurl(num, url);
@@ -305,76 +305,76 @@ exports.getproduct = async (req, res) => {
     }
 };
 
-const filtervarient = async (upc) => {
-    let resu = await Varientupc.find();
-    resu.map(async (r) => {
-        if (r.upc.includes(upc)) {
-            let newupclist = new Avlupc({ upc: r.upc });
-            let re = await newupclist.save();
-            console.log(re)
-        }
-    })
-}
+// const filtervarient = async (upc) => {
+//     let resu = await Varientupc.find();
+//     resu.map(async (r) => {
+//         if (r.upc.includes(upc)) {
+//             let newupclist = new Avlupc({ upc: r.upc });
+//             let re = await newupclist.save();
+//             console.log(re)
+//         }
+//     })
+// }
 
 exports.pratical = async (req, res) => {
-    try {
-        const url = req.body.url
-        console.log(url)
-        const client = new ZenRows(apikey);
-        const request = await client.get(url, {
-            premium_proxy: true,
-            js_render: true,
-        });
-        const html = await request.text();
-        const data = await fetchAndExtractVariable(html, 'utag_data');
+    // try {
+    //     const url = req.body.url
+    //     console.log(url)
+    //     const client = new ZenRows(apikey);
+    //     const request = await client.get(url, {
+    //         premium_proxy: true,
+    //         js_render: true,
+    //     });
+    //     const html = await request.text();
+    //     const data = await fetchAndExtractVariable(html, 'utag_data');
 
-        const $ = cheerio.load(html);
-        const ids = data.sku_id;
-        const upcs = data.sku_upc
-        console.log(ids)
-        console.log(upcs)
-        let productData = null;
-        $('script').each((index, element) => {
-            const scriptContent = $(element).html();
-            const regex = /window\.product\s*=\s*({[^]*?});/;
-            const match = scriptContent.match(regex);
-            if (match) {
-                try {
-                    productData = JSON.parse(match[1]);
+    //     const $ = cheerio.load(html);
+    //     const ids = data.sku_id;
+    //     const upcs = data.sku_upc
+    //     console.log(ids)
+    //     console.log(upcs)
+    //     let productData = null;
+    //     $('script').each((index, element) => {
+    //         const scriptContent = $(element).html();
+    //         const regex = /window\.product\s*=\s*({[^]*?});/;
+    //         const match = scriptContent.match(regex);
+    //         if (match) {
+    //             try {
+    //                 productData = JSON.parse(match[1]);
 
-                } catch (error) {
-                    console.error("Failed to parse JSON:", error);
-                }
-            }
-        });
-        const colorToSize = productData.colorSizeMap.colorToSize
+    //             } catch (error) {
+    //                 console.error("Failed to parse JSON:", error);
+    //             }
+    //         }
+    //     });
+    //     const colorToSize = productData.colorSizeMap.colorToSize
 
-        const result = {};
+    //     const result = {};
 
 
-        for (const color in colorToSize) {
-            const values = Object.values(colorToSize[color]);
-            let upclist = []
-            values.forEach((v) => {
-                upclist.push(upcs[ids.indexOf(v)])
-            })
+    //     for (const color in colorToSize) {
+    //         const values = Object.values(colorToSize[color]);
+    //         let upclist = []
+    //         values.forEach((v) => {
+    //             upclist.push(upcs[ids.indexOf(v)])
+    //         })
 
-            result[color] = upclist;
-        }
-        for (const i in result) {
-            let obj = {
-                varient: i,
-                upc: result[i]
-            }
-            let newvarient = new Varientupc(obj);
-            let savedata = await newvarient.save();
-            console.log(savedata)
-        }
+    //         result[color] = upclist;
+    //     }
+    //     for (const i in result) {
+    //         let obj = {
+    //             varient: i,
+    //             upc: result[i]
+    //         }
+    //         let newvarient = new Varientupc(obj);
+    //         let savedata = await newvarient.save();
+    //         console.log(savedata)
+    //     }
 
-        filtervarient('0438761322886')
-    } catch (err) {
-        console.log(err)
-    }
+    //     filtervarient('0438761322886')
+    // } catch (err) {
+    //     console.log(err)
+    // }
 }
 
 exports.deleteproduct = async (req, res) => {
