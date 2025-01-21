@@ -6,10 +6,11 @@ const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const InvProduct = require('../../model/Inventory_model/invProduct');
 const AutoFetchData = require('../../model/Inventory_model/autofetchdata');
 const Backup = require('../../model/Inventory_model/backup')
-const Upc = require('../../model/Brand_model/upc');
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
+// const Avlupc = require('../../model/Brand_model/avlupc');
+// const Varientupc = require('../../model/Brand_model/varientupc')
 
 // ---------brand search result------
 exports.downloadfinalSheet = async (req, res) => {
@@ -25,6 +26,7 @@ exports.downloadfinalSheet = async (req, res) => {
             const blkItem = blkMap.get(item.UPC);
             return {
                 'Input EAN': 'UPC' + item.UPC,
+                'SKU':blkItem ? blkItem.sku : '',
                 'ASIN': item.ASIN,
                 'Amazon link': item['Amazon link'],
                 'Belk link': blkItem ? blkItem.url : '',
@@ -83,9 +85,69 @@ exports.downloadfinalSheet = async (req, res) => {
 };
 
 // ---------download upc list scrapped from brand url----------
+// const filtervarient = async (upc) => {
+//     let resu = await Varientupc.find();
+//     resu.map(async (r) => {
+//         if (r.upc.includes(upc)) {
+//             let newupclist = new Avlupc({ upc: r.upc });
+//             await newupclist.save();
+//         }
+//     })
+// }
+
+// const filterupc = async () => {
+//     // let resultdata = await AvailableProduct.find({}, { UPC: 1, _id: 0 });
+//     let resu = await Varientupc.find();
+//     let resultdata = ['0438765402843', '0438765408746', '0438765406070', '0438765408579']
+//     resultdata.forEach(e => {
+//         resu.map(async (r) => {
+//             if (r.upc.includes(e)) {
+//                 let newupclist = new Avlupc({ upc: r.upc });
+//                 await newupclist.save();
+//             }
+//         })
+//     });
+// }
+// exports.downloadExcel = async (req, res) => {
+//     try {
+
+//     // let resultdata = await AvailableProduct.find({}, { UPC: 1, _id: 0 });
+//    let resultdata=['0438765402843', '0438765408746', '0438765406070', '0438765408579']
+//     let data = await Avlupc.find({});
+//         let result=[];
+//          data.forEach((d)=>{
+//            result.push(d.upc)
+//         })
+//        result=result.flat();
+//       resultdata.forEach((e)=>{
+//           result.splice(result.indexOf(e),1);
+//       })
+//       console.log(result)
+//         let jsondata=result.map((r)=>({
+//             upc:r
+//         }))
+//         const worksheet = xlsx.utils.json_to_sheet(jsondata);
+//         const workbook = xlsx.utils.book_new();
+
+//         xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
+//         const filePath = path.join(__dirname, 'data.xlsx');
+//         xlsx.writeFile(workbook, filePath);
+
+//         // Send the Excel file for download
+//         res.download(filePath, (err) => {
+//             if (err) {
+//                 console.error('Error sending file:', err);
+//             }
+//             fs.unlinkSync(filePath);
+//         });
+//     } catch (err) {
+//         console.log(err)
+//     }
+// }
+
 exports.downloadExcel = async (req, res) => {
     try {
-        const data = await Product.find({},{upc:1, _id:0});
+        const data = await Product.find({}, { upc: 1, _id: 0 });
         const jsondata = data.map((d) => ({
             UPC: d.upc
         }));
@@ -153,6 +215,29 @@ exports.downloadInvSheet = async (req, res) => {
     }
 };
 
+exports.exp = async (req, res) => {
+    try {
+    //     console.log('exp function')
+    //     let availableupc = await AvailableProduct.find({}, { UPC: 1, _id: 0 });
+    //     let au= availableupc.map((a)=> a.UPC);
+    //     console.log(au.length)
+    //     let result = await Varientupc.find({}, { upc: 1, _id: 0 });
+    //     let upclist = [];
+    //     result.forEach((r) => {
+    //         upclist.push(r.upc[Math.floor(r.upc.length / 2)])
+    //     })
+    //     console.log(upclist.length)
+    //  let exparr=[];
+    //  upclist.forEach((u)=>{
+    //     if(au.includes(u)){
+    //         exparr.push(u)
+    //     }
+    //  })
+
+    } catch (err) {
+        console.log(err)
+    }
+}
 // -----------upload asin-scope data-------------
 exports.uploaddata = async (req, res) => {
     try {
@@ -160,9 +245,8 @@ exports.uploaddata = async (req, res) => {
         if (!file) {
             return res.status(400).send('No file uploaded.');
         }
-        // Load the uploaded Excel file
         const workbook = xlsx.readFile(file.path);
-        const sheetName = workbook.SheetNames[0]; // Read first sheet
+        const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(sheet);
         const filteredData = data.filter(row => row.ASIN !== '-');
@@ -197,7 +281,7 @@ exports.uploadinvdata = async (req, res) => {
     console.log(data1.length);
     const data = data1.filter((d) => d['ASIN'] !== undefined && d['Input UPC'] !== undefined);
     console.log(data.length)
-    const modifiedurldata = data.map((d) => ({ ...d, 'Product link': d['Product link'].split(".html")[0] + ".html" }))
+    const modifiedurldata = data.map((d) => ({ ...d, 'Product link': d['Product link'] }))
     if (modifiedurldata.length === 0) {
         console.log("no data")
         return res.status(400).json({ msg: 'No valid data to process' });
@@ -249,18 +333,18 @@ exports.uploadinvdata2 = async (req, res) => {
 
     const data1 = xlsx.utils.sheet_to_json(sheet);
     const data = data1.filter((d) => d['ASIN'] !== undefined && d['upc'] !== undefined);
-    const modifiedurldata = data.map((d) => 
-        ({ 
-            'Input UPC': d['For Scrapping use'],
-            'ASIN':d.ASIN,
-            'SKU':d['Amazon SKU'],
-            'Product price': d['Product Cost'],
-            'Available Quantity':0,
-            'Product link': d['Vendor URL'].split(".html")[0] + ".html" ,
-            'Fulfillment':d['Fulfillment Shipping'],
-            'Amazon Fees%':d['Fees%'],
-            'Shipping Template':d['Shipping template used on AZ']
-        }))
+    const modifiedurldata = data.map((d) =>
+    ({
+        'Input UPC': d['For Scrapping use'],
+        'ASIN': d.ASIN,
+        'SKU': d['Amazon SKU'],
+        'Product price': d['Product Cost'],
+        'Available Quantity': 0,
+        'Product link': d['Vendor URL'].split(".html")[0] + ".html",
+        'Fulfillment': d['Fulfillment Shipping'],
+        'Amazon Fees%': d['Fees%'],
+        'Shipping Template': d['Shipping template used on AZ']
+    }))
     if (modifiedurldata.length === 0) {
         console.log("no data")
         return res.status(400).json({ msg: 'No valid data to process' });
