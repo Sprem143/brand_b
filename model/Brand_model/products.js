@@ -8,6 +8,7 @@ const dataSchema = new mongoose.Schema({
     quantity: Number,
     color: String,
     size: String,
+    sku:String,
     imgurl: String,
     discount: Number,
     onsale: Boolean,
