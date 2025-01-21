@@ -315,6 +315,64 @@ exports.uploaddata = async (req, res) => {
     }
 };
 
+exports.uploadforcheck = async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).send('No file uploaded.');
+        }
+        const workbook = xlsx.readFile(file.path);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(sheet);
+        console.log(data[0])
+        const filteredData = data.filter(row => row.ASIN !== '-');
+       
+        const jsondata = filteredData.map((d) => {
+            return {
+                'Input EAN':d['Input EAN'],
+            'SKU':d.SKU ,
+            'ASIN': d.ASIN,
+            'Amazon link': d['Amazon link'],
+            'Belk link':d['Belk link'],
+            'EAN List': d['EAN List'],
+            'MPN': d.MPN,
+            'ISBN': d.ISBN,
+            'Title': d.Title,
+            'Brand': d.Brand,
+            'Dimensions (in)': d['Dimensions (in)'],
+            'Weight (lb)': d['Weight (lb)'],
+            'Image link': d['Image link'],
+            'Lowest Price (USD)': d['Lowest Price (USD)'],
+            'Number of Sellers': d['Number of Sellers'],
+            'BSR': d.BSR,
+            'Product Category': d['Product Category'],
+            'Buy Box Price (USD)': d['Buy Box Price (USD)'],
+            'FBA Fees': d['FBA Fees'],
+            'Fees Breakdown': d['Fees Breakdown'],
+            'Product id': d['Product id'],
+            'UPC':d.UPC,
+            'Available Quantity': d['Available Quantity'],
+            'Product name': d['Product name'],
+            'Img link': d['Img link'],
+            'Product Currency':d['Product Currency'],
+            'Product price': d['Product price'],
+            'Category': d['Category'],
+            'Soldby':d['Soldby'],
+            'Size':d['Size'],
+            'Color':d['Color'],
+            'Any other variations': d['Any other variations'],
+            };
+        });        
+       await FinalProduct.insertMany(jsondata)
+
+        res.status(200).send("File uploaded successfully")
+    } catch (err) {
+        console.log(err);
+        res.send(err);
+    }
+};
+
 exports.uploadinvdata = async (req, res) => {
     let backupdata = await AutoFetchData.find();
     const backup = new Backup({ data: backupdata });
