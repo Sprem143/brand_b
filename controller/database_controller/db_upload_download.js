@@ -15,68 +15,76 @@ const path = require('path');
 // ---------brand search result------
 exports.downloadfinalSheet = async (req, res) => {
     try {
-        const amz = await AvailableProduct.find();
-        const blk = await Product.find();
-        const brand = amz[0].Brand;
+    //     const amz = await AvailableProduct.find();
+    //     const blk = await Product.find();
+    //     const brand = amz[0].Brand;
 
-        // Create a map for quick access to blk products by UPC
-        const blkMap = new Map(blk.map(product => [product.upc, product]));
-        // Filter and map data to the desired format
-        const jsondata = amz.map((item) => {
-            const blkItem = blkMap.get(item.UPC);
-            return {
-                'Input EAN': 'UPC' + item.UPC,
-                'SKU':blkItem ? blkItem.sku : '',
-                'ASIN': item.ASIN,
-                'Amazon link': item['Amazon link'],
-                'Belk link': blkItem ? blkItem.url : '',
-                'EAN List': item['EAN List'],
-                'MPN': item.MPN,
-                'ISBN': item.ISBN,
-                'Title': item.Title,
-                'Brand': brand,
-                'Dimensions (in)': item['Dimensions (in)'],
-                'Weight (lb)': item['Weight (lb)'],
-                'Image link': item['Image link'],
-                'Lowest Price (USD)': item['Lowest Price (USD)'],
-                'Number of Sellers': item['Number of Sellers'],
-                'BSR': item.BSR,
-                'Product Category': item['Product Category'],
-                'Buy Box Price (USD)': item['Buy Box Price (USD)'],
-                'FBA Fees': item['FBA Fees'],
-                'Fees Breakdown': item['Fees Breakdown'],
-                'Product id': blkItem ? blkItem.productid : '',
-                'UPC': 'UPC' + item.UPC,
-                'Available Quantity': blkItem ? blkItem.quantity : 0,
-                'Product name': blkItem ? blkItem.name : '',
-                'Belk link': blkItem ? blkItem.url : '',
-                'Img link': blkItem ? blkItem.imgurl : '',
-                'Product Currency': 'USD',
-                'Product price': blkItem ? blkItem.price : 0,
-                'Category': '',
-                'Soldby': 'Belk',
-                'Size': blkItem ? blkItem.size : '',
-                'Color': blkItem ? blkItem.color : '',
-                'Any other variations': ''
-            };
-        });
-        // ----------filter jsondata---------
-        const newJson = jsondata.filter((json) => json['Product price'] > 0)
-        FinalProduct.insertMany(newJson)
-        const worksheet = xlsx.utils.json_to_sheet(newJson);
-        const workbook = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
+    //     // Create a map for quick access to blk products by UPC
+    //     const blkMap = new Map(blk.map(product => [product.upc, product]));
+    //     // Filter and map data to the desired format
+    //     const jsondata = amz.map((item) => {
+    //         const blkItem = blkMap.get(item.UPC);
+    //         return {
+    //             'Input EAN': 'UPC' + item.UPC,
+    //             'SKU':blkItem ? blkItem.sku : '',
+    //             'ASIN': item.ASIN,
+    //             'Amazon link': item['Amazon link'],
+    //             'Belk link': blkItem ? blkItem.url : '',
+    //             'EAN List': item['EAN List'],
+    //             'MPN': item.MPN,
+    //             'ISBN': item.ISBN,
+    //             'Title': item.Title,
+    //             'Brand': brand,
+    //             'Dimensions (in)': item['Dimensions (in)'],
+    //             'Weight (lb)': item['Weight (lb)'],
+    //             'Image link': item['Image link'],
+    //             'Lowest Price (USD)': item['Lowest Price (USD)'],
+    //             'Number of Sellers': item['Number of Sellers'],
+    //             'BSR': item.BSR,
+    //             'Product Category': item['Product Category'],
+    //             'Buy Box Price (USD)': item['Buy Box Price (USD)'],
+    //             'FBA Fees': item['FBA Fees'],
+    //             'Fees Breakdown': item['Fees Breakdown'],
+    //             'Product id': blkItem ? blkItem.productid : '',
+    //             'UPC': 'UPC' + item.UPC,
+    //             'Available Quantity': blkItem ? blkItem.quantity : 0,
+    //             'Product name': blkItem ? blkItem.name : '',
+    //             'Belk link': blkItem ? blkItem.url : '',
+    //             'Img link': blkItem ? blkItem.imgurl : '',
+    //             'Product Currency': 'USD',
+    //             'Product price': blkItem ? blkItem.price : 0,
+    //             'Category': '',
+    //             'Soldby': 'Belk',
+    //             'Size': blkItem ? blkItem.size : '',
+    //             'Color': blkItem ? blkItem.color : '',
+    //             'Any other variations': ''
+    //         };
+    //     });
+    //     // ----------filter jsondata---------
+    //     const newJson = jsondata.filter((json) => json['Product price'] > 0)
+    //    await FinalProduct.insertMany(newJson)
+    //    res.status(200).json({status:true, data:newJson})
+        // const worksheet = xlsx.utils.json_to_sheet(newJson);
+        // const workbook = xlsx.utils.book_new();
+        // xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
 
-        const filePath = path.join(__dirname, 'finalsheet.xlsx');
-        xlsx.writeFile(workbook, filePath);
+        // const filePath = path.join(__dirname, 'finalsheet.xlsx');
+        // xlsx.writeFile(workbook, filePath);
 
-        // Send file for download and delete after sending
-        res.download(filePath, (err) => {
-            if (err) {
-                console.error('Error sending file:', err);
-            }
-            fs.unlinkSync(filePath);
-        });
+        // // Send file for download and delete after sending
+        // res.download(filePath, (err) => {
+        //     if (err) {
+        //         console.error('Error sending file:', err);
+        //     }
+        //     fs.unlinkSync(filePath);
+        // });
+
+        let data =await FinalProduct.find();
+        if(data.length>0){
+            res.status(200).json({status:true, data:data})
+        }else{
+            res.status(404).json({status:false, msg:"Server error"})
+        }
 
     } catch (err) {
         console.error('Error generating Excel sheet:', err);
@@ -251,7 +259,55 @@ exports.uploaddata = async (req, res) => {
         const data = xlsx.utils.sheet_to_json(sheet);
         const filteredData = data.filter(row => row.ASIN !== '-');
         await AvailableProduct.deleteMany();
+        await FinalProduct.deleteMany();
         await AvailableProduct.insertMany(filteredData);
+        const amz =filteredData?filteredData: await AvailableProduct.find();
+        const blk = await Product.find();
+        const brand = amz[0].Brand;
+        const blkMap = new Map(blk.map(product => [product.upc, product]));
+        const jsondata = amz.map((item) => {
+            const blkItem = blkMap.get(item.UPC);
+            return {
+                'Input EAN': 'UPC' + item.UPC,
+                'SKU':blkItem ? blkItem.sku : '',
+                'ASIN': item.ASIN,
+                'Amazon link': item['Amazon link'],
+                'Belk link': blkItem ? blkItem.url : '',
+                'EAN List': item['EAN List'],
+                'MPN': item.MPN,
+                'ISBN': item.ISBN,
+                'Title': item.Title,
+                'Brand': brand,
+                'Dimensions (in)': item['Dimensions (in)'],
+                'Weight (lb)': item['Weight (lb)'],
+                'Image link': item['Image link'],
+                'Lowest Price (USD)': item['Lowest Price (USD)'],
+                'Number of Sellers': item['Number of Sellers'],
+                'BSR': item.BSR,
+                'Product Category': item['Product Category'],
+                'Buy Box Price (USD)': item['Buy Box Price (USD)'],
+                'FBA Fees': item['FBA Fees'],
+                'Fees Breakdown': item['Fees Breakdown'],
+                'Product id': blkItem ? blkItem.productid : '',
+                'UPC': 'UPC' + item.UPC,
+                'Available Quantity': blkItem ? blkItem.quantity : 0,
+                'Product name': blkItem ? blkItem.name : '',
+                'Belk link': blkItem ? blkItem.url : '',
+                'Img link': blkItem ? blkItem.imgurl : '',
+                'Product Currency': 'USD',
+                'Product price': blkItem ? blkItem.price : 0,
+                'Category': '',
+                'Soldby': 'Belk',
+                'Size': blkItem ? blkItem.size : '',
+                'Color': blkItem ? blkItem.color : '',
+                'Any other variations': ''
+            };
+        });
+        // ----------filter jsondata---------
+        
+        const newJson = jsondata.filter((json) => json['Product price'] > 0)
+       await FinalProduct.insertMany(newJson)
+
         res.status(200).send("File uploaded successfully")
     } catch (err) {
         console.log(err);
