@@ -17,7 +17,7 @@ exports.fetchbrand = async (req, res) => {
         await BrandUrl.deleteMany();
         await Product.deleteMany();
         // await Varientupc.deleteMany();
-        await Avlupc.deleteMany();
+        // await Avlupc.deleteMany();
         const { url, num } = req.body
         generateurl(num, url);
 
