@@ -5,45 +5,44 @@ const BrandUrl = require('../../model/Brand_model/brandurl');
 const cheerio = require('cheerio')
 const Product = require('../../model/Brand_model/products');
 const { ZenRows } = require("zenrows");
-const Varientupc = require('../../model/Brand_model/varientupc')
+// const Varientupc = require('../../model/Brand_model/varientupc')
 
 // -------------save varient wise upc list--------
-const savevarientlist = async (html) => {
-    try {
-        const $ = cheerio.load(html);
-        let productData = null;
-        $('script').each((index, element) => {
-            const scriptContent = $(element).html();
-            const regex = /window\.product\s*=\s*({[^]*?});/;
-            const match = scriptContent.match(regex);
-            if (match) {
-                try {
-                    productData = JSON.parse(match[1]);
+// const savevarientlist = async (html) => {
+//     try {
+//         const $ = cheerio.load(html);
+//         let productData = null;
+//         $('script').each((index, element) => {
+//             const scriptContent = $(element).html();
+//             const regex = /window\.product\s*=\s*({[^]*?});/;
+//             const match = scriptContent.match(regex);
+//             if (match) {
+//                 try {
+//                     productData = JSON.parse(match[1]);
 
-                } catch (error) {
-                    console.error("Failed to parse JSON:", error);
-                }
-            }
-        });
-        const colorToSize = productData.colorSizeMap.colorToSize
-        const result = {};
-        for (const color in colorToSize) {
-            const values = Object.values(colorToSize[color]);
-            result[color] = values;
-        }
-        for (const i in result) {
-            let obj = {
-                varient: i,
-                upc: result[i]
-            }
-            let newvarient = new Varientupc(obj);
-            await newvarient.save();
-        }
-    } catch (err) {
-        console.log(err)
-    }
-}
-
+//                 } catch (error) {
+//                     console.error("Failed to parse JSON:", error);
+//                 }
+//             }
+//         });
+//         const colorToSize = productData.colorSizeMap.colorToSize
+//         const result = {};
+//         for (const color in colorToSize) {
+//             const values = Object.values(colorToSize[color]);
+//             result[color] = values;
+//         }
+//         for (const i in result) {
+//             let obj = {
+//                 varient: i,
+//                 upc: result[i]
+//             }
+//             let newvarient = new Varientupc(obj);
+//             await newvarient.save();
+//         }
+//     } catch (err) {
+//         console.log(err)
+//     }
+// }
 
 // --------start scrapping upc--------
 async function fetchAndExtractVariable(html, variableName) {
@@ -131,7 +130,7 @@ const getupc = async (url) => {
             js_render: true,
         });
         const html = await request.text();
-        await savevarientlist(html)
+        // await savevarientlist(html)
         let clrsize = await fetchProductData(html);
         const size = clrsize.colorSizeMap.colorToSize
         const color = clrsize.colorSizeMap.colors;
