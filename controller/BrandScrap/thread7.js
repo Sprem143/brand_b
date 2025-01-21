@@ -95,27 +95,27 @@ async function fetchProductData(html) {
     }
 }
 
-const generatesku=(color,size)=>{
+const generatesku=(upc,color,size)=>{
    if(color && size){
     color= color.replaceAll(' ','-').replaceAll('/','-').toUpperCase();
     let firstletter= color.charAt(0)
     color= color.slice(1)
     var modifiedColor=color
-    if(color.length>10){
+    if(color.length>12){
         let v=['A','E','I','O','U'];
         for (let i of v){
             modifiedColor  = color.replaceAll(i,'');
             color= modifiedColor
         }
     }
-    if(color.length>10){
+    if(color.length>12){
         let arr= color.split('-');
-        for (let i=0; i<s.length; i++){
+        for (let i=0; i<arr.length; i++){
             arr[i]= arr[i].slice(0,3)
         }
         color= arr.join('-')
     }
-  let sku=firstletter+color+'-'+size
+  let sku='RC-R1-'+upc+'-'+firstletter+color+'-'+size
   return sku;
    }else{
     return null
@@ -172,7 +172,7 @@ const getupc = async (url) => {
                 productid: id[index],
                 color: color_size[id[index]] ? color_size[id[index]].color : null,
                 size: color_size[id[index]] ? color_size[id[index]].size : null,
-                sku:generatesku(color_size[id[index]] ? color_size[id[index]].color : null,color_size[id[index]] ? color_size[id[index]].size : null,),
+                sku:generatesku(u,color_size[id[index]] ? color_size[id[index]].color : null,color_size[id[index]] ? color_size[id[index]].size : null,),
                 discount: onsale[index] ? 0 : Number(coupon),
                 offerend: offerend,
                 url: url,
