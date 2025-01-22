@@ -17,7 +17,7 @@ exports.fetchbrand = async (req, res) => {
         await BrandUrl.deleteMany();
         await Product.deleteMany();
         // await Varientupc.deleteMany();
-        // await Avlupc.deleteMany();
+        await Avlupc.deleteMany();
         const { url, num } = req.body
         generateurl(num, url);
 
@@ -377,11 +377,20 @@ exports.pratical = async (req, res) => {
     // }
 }
 
+exports.setchecked=async(req,res)=>{
+    try{
+     const {id}= req.body;
+ await finalProduct.findOneAndUpdate({_id:id}, {$set:{isCheked:true}}, {new:true});
+    res.status(200).json({status:true})
+    }catch(err){
+        console.log(err);
+        res.status(500).json({status:false, msg:err})
+    }
+}
 exports.deleteproduct = async (req, res) => {
     try {
         const { id } = req.body
         let resp = await finalProduct.deleteOne({ _id: id });
-        console.log(resp)
         if (resp.deletedCount == 1) {
             res.status(200).json({ status: true })
         }
@@ -397,7 +406,8 @@ exports.editsku = async (req, res) => {
         const newsku = req.body.newsku
         let resp = await finalProduct.findOneAndUpdate(
             { _id: id },
-            { $set: { SKU: newsku } }
+            { $set: { SKU: newsku } },
+            {new:true}
         )
         res.status(200).json({status:true})
     } catch (err) {
