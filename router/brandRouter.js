@@ -4,7 +4,7 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
 const { autofetchdata } = require('../controller/Inventory_controller/inventory');
-const { fetchbrand, getproduct,deleteproduct,editsku } = require('../controller/BrandScrap/brandController');
+const { fetchbrand, getproduct,deleteproduct,editsku,setchecked } = require('../controller/BrandScrap/brandController');
 const {deletebackup ,getupdatedproduct, sendproductsurl, getinvlinks, getinvproduct,totalproducts } = require('../controller/database_controller/database');
 const { downloadInvSheet,downloadfinalSheet, uploadinvdata,uploadinvdata2, downloadExcel, uploaddata,uploadforcheck} = require('../controller/database_controller/db_upload_download')
 const {getproduct1}=require('../controller/BrandScrap/thread1')
@@ -37,6 +37,7 @@ router.delete('/deletebackup', deletebackup);
 router.delete('/deleteproduct', deleteproduct);
 // router.get('/exp',exp)
 router.put('/editsku',editsku)
+router.put('/setchecked',setchecked)
 // ---------brand url scrappint thred-------
 
 router.post('/thread1', getproduct1)
