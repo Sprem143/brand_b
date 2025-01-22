@@ -114,7 +114,7 @@ exports.removeexistingurl = async (req, res) => {
             return res.status(400).send('No file uploaded.');
         }
         const workbook = xlsx.readFile(file.path);
-        const sheetName = workbook.SheetNames[2];
+        const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const data1 = xlsx.utils.sheet_to_json(sheet);
 
