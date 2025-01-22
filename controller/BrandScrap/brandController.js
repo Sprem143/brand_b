@@ -8,8 +8,9 @@ const cheerio = require('cheerio')
 const Product = require('../../model/Brand_model/products');
 // const Varientupc = require('../../model/Brand_model/varientupc')
 // const Avlupc = require('../../model/Brand_model/avlupc')
-const { ZenRows } = require("zenrows");
 const finalProduct = require('../../model/Brand_model/finalProduct');
+const xlsx = require('xlsx')
+
 
 exports.fetchbrand = async (req, res) => {
     try {
@@ -17,7 +18,7 @@ exports.fetchbrand = async (req, res) => {
         await BrandUrl.deleteMany();
         await Product.deleteMany();
         // await Varientupc.deleteMany();
-        await Avlupc.deleteMany();
+        // await Avlupc.deleteMany();
         const { url, num } = req.body
         generateurl(num, url);
 
@@ -39,7 +40,6 @@ exports.fetchbrand = async (req, res) => {
         const html = response.data;
         const $ = cheerio.load(html);
 
-        // Find all <a> tags with class "thumb-link" and extract their href attributes
         let productUrls = [];
         $('a.thumb-link').each((index, element) => {
             const url = $(element).attr('href');
@@ -51,13 +51,11 @@ exports.fetchbrand = async (req, res) => {
             const productarr = productUrls.map(p => 'https://www.belk.com' + p);
             const products = new BrandUrl({ producturl: productarr });
             await products.save();
-
             const pages = await BrandPage.find({}, { url: 1, _id: 0 });
-            console.log(pages.length)
-            console.log(pages)
-            const secondurl = pages[0].url;
-            await handleSecondPageScraping(secondurl);
-
+            if (pages.length > 0) {
+                const secondurl = pages[0].url;
+                await handleSecondPageScraping(secondurl);
+            }
         }
         res.status(200).json({ status: true, msg: "All pages's urls fetched successfully" })
     } catch (err) {
@@ -109,6 +107,39 @@ const handleSecondPageScraping = async (urls) => {
     }
 };
 
+exports.removeexistingurl = async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).send('No file uploaded.');
+        }
+        const workbook = xlsx.readFile(file.path);
+        const sheetName = workbook.SheetNames[2];
+        const sheet = workbook.Sheets[sheetName];
+        const data1 = xlsx.utils.sheet_to_json(sheet);
+
+        let data = data1.filter((d) => d['Vendor URL'] !== undefined);
+        data = data.map((d) => d['Vendor URL'].split(".html")[0] + ".html");
+        let url = await BrandUrl.find();
+        let id = url[0]._id
+        url = url[0].producturl
+        var count = 0
+        url.forEach(async (u) => {
+            if (data.includes(u)) {
+                count+=1
+                await BrandUrl.updateOne(
+                    { _id: id },
+                    { $pull: { producturl: u} }
+                )
+               
+            }
+        })
+        res.status(200).json({status:true, count:count})
+    } catch (err) {
+        console.log(err)
+    }
+
+}
 
 const generateurl = async (num, url) => {
     if (url.includes('prefn1')) {
@@ -377,14 +408,14 @@ exports.pratical = async (req, res) => {
     // }
 }
 
-exports.setchecked=async(req,res)=>{
-    try{
-     const {id}= req.body;
- await finalProduct.findOneAndUpdate({_id:id}, {$set:{isCheked:true}}, {new:true});
-    res.status(200).json({status:true})
-    }catch(err){
+exports.setchecked = async (req, res) => {
+    try {
+        const { id } = req.body;
+        await finalProduct.findOneAndUpdate({ _id: id }, { $set: { isCheked: true } }, { new: true });
+        res.status(200).json({ status: true })
+    } catch (err) {
         console.log(err);
-        res.status(500).json({status:false, msg:err})
+        res.status(500).json({ status: false, msg: err })
     }
 }
 exports.deleteproduct = async (req, res) => {
@@ -407,9 +438,9 @@ exports.editsku = async (req, res) => {
         let resp = await finalProduct.findOneAndUpdate(
             { _id: id },
             { $set: { SKU: newsku } },
-            {new:true}
+            { new: true }
         )
-        res.status(200).json({status:true})
+        res.status(200).json({ status: true })
     } catch (err) {
         console.log(err);
         res.status(500).json({ status: false, msg: err })
