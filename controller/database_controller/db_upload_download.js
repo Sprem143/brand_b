@@ -314,24 +314,49 @@ exports.uploaddata = async (req, res) => {
         res.send(err);
     }
 };
-
+const generatesku=(upc,color,size)=>{
+    if(color && size){
+     color= color.replaceAll(' ','-').replaceAll('/','-').toUpperCase();
+     let firstletter= color.charAt(0)
+     color= color.slice(1)
+     var modifiedColor=color
+     if(color.length>12){
+         let v=['A','E','I','O','U'];
+         for (let i of v){
+             modifiedColor  = color.replaceAll(i,'');
+             color= modifiedColor
+         }
+     }
+     if(color.length>12){
+         let arr= color.split('-');
+         for (let i=0; i<arr.length; i++){
+             arr[i]= arr[i].slice(0,3)
+         }
+         color= arr.join('-')
+     }
+   let sku='RC-R1-'+upc+'-'+firstletter+color+'-'+size
+   return sku;
+    }else{
+     return null
+    }
+ }
 exports.uploadforcheck = async (req, res) => {
     try {
+        
         const file = req.file;
         if (!file) {
             return res.status(400).send('No file uploaded.');
         }
+        await FinalProduct.deleteMany();
         const workbook = xlsx.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(sheet);
-        console.log(data[0])
         const filteredData = data.filter(row => row.ASIN !== '-');
        
         const jsondata = filteredData.map((d) => {
             return {
-                'Input EAN':d['Input EAN'],
-            'SKU':d.SKU ,
+            'Input EAN':d['Input EAN'],
             'ASIN': d.ASIN,
             'Amazon link': d['Amazon link'],
             'Belk link':d['Belk link'],
@@ -351,7 +376,7 @@ exports.uploadforcheck = async (req, res) => {
             'FBA Fees': d['FBA Fees'],
             'Fees Breakdown': d['Fees Breakdown'],
             'Product id': d['Product id'],
-            'UPC':d.UPC,
+            'UPC':d.UPC || 'UPC'+d['Input EAN'],
             'Available Quantity': d['Available Quantity'],
             'Product name': d['Product name'],
             'Img link': d['Img link'],
@@ -361,6 +386,7 @@ exports.uploadforcheck = async (req, res) => {
             'Soldby':d['Soldby'],
             'Size':d['Size'],
             'Color':d['Color'],
+            SKU: d.SKU || generatesku(d['Input EAN'],d.Color,d.Size),
             'Any other variations': d['Any other variations'],
             };
         });        
