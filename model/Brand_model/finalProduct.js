@@ -1,6 +1,10 @@
 const mongoose = require('mongoose')
 
 const dataSchema = new mongoose.Schema({
+    isCheked:{
+        type:Boolean,
+        default:false
+    },
     'Input EAN': String,
     SKU: String,
     ASIN:String,
@@ -33,6 +37,7 @@ const dataSchema = new mongoose.Schema({
     Size:String,
     Color: String,
     'Any other variations': String
+
 });
 
 module.exports = mongoose.model('FinalProduct', dataSchema);
