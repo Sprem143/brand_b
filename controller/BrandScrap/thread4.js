@@ -96,31 +96,37 @@ async function fetchProductData(html) {
 }
 
 const generatesku=(upc,color,size)=>{
-   if(color && size){
-    color= color.replaceAll(' ','-').replaceAll('/','-').toUpperCase();
-    let firstletter= color.charAt(0)
-    color= color.slice(1)
-    var modifiedColor=color
-    if(color.length>12){
-        let v=['A','E','I','O','U'];
-        for (let i of v){
-            modifiedColor  = color.replaceAll(i,'');
-            color= modifiedColor
-        }
+    if(color && size){
+     let a= size.split(' ');
+     a[1]= a[1].slice(0,1)
+     a=a.join('');
+     size=a
+     color= color.replaceAll(' ','-').replaceAll('/','-').toUpperCase();
+     let firstletter= color.charAt(0)
+     color= color.slice(1)
+     var modifiedColor=color
+     if(color.length>12){
+         let v=['A','E','I','O','U'];
+         for (let i of v){
+             modifiedColor  = color.replaceAll(i,'');
+             color= modifiedColor
+         }
+     }
+     if(color.length>12){
+         let arr= color.split('-');
+         for (let i=0; i<arr.length; i++){
+             arr[i]= arr[i].slice(0,3)
+         }
+         color= arr.join('-')
+     }
+   let sku='RC-R1-'+upc+'-'+firstletter+color+'-'+size
+   sku.replace('--','-')
+   sku.replace('--','-')
+   return sku;
+    }else{
+     return null
     }
-    if(color.length>12){
-        let arr= color.split('-');
-        for (let i=0; i<arr.length; i++){
-            arr[i]= arr[i].slice(0,3)
-        }
-        color= arr.join('-')
-    }
-  let sku='RC-R1-'+upc+'-'+firstletter+color+'-'+size
-  return sku;
-   }else{
-    return null
-   }
-}
+ }
 
 const getupc = async (url) => {
     try {
