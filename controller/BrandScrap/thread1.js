@@ -97,6 +97,10 @@ async function fetchProductData(html) {
 
 const generatesku=(upc,color,size)=>{
    if(color && size){
+    let a= size.split(' ');
+    a[1]= a[1].slice(0,1)
+    a=a.join('');
+    size=a
     color= color.replaceAll(' ','-').replaceAll('/','-').toUpperCase();
     let firstletter= color.charAt(0)
     color= color.slice(1)
@@ -116,6 +120,8 @@ const generatesku=(upc,color,size)=>{
         color= arr.join('-')
     }
   let sku='RC-R1-'+upc+'-'+firstletter+color+'-'+size
+  sku.replace('--','-')
+  sku.replace('--','-')
   return sku;
    }else{
     return null
@@ -203,11 +209,11 @@ exports.getproduct1 = async (req, res) => {
                 { _id: arrayid },
                 { $pull: { producturl: url } }
             )
+            res.status(200).json({ status: true })
         } else {
+            res.status(200).json({ status: false })
             console.log("UPC data not found or error occurred for:", url);
         }
-        res.status(200).json({ status: true })
-
     } catch (err) {
         console.error("Error:", err);
         res.status(500).json({ status: false, error: 'Failed to fetch product data' });
