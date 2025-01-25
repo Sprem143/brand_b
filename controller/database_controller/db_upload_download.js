@@ -1,7 +1,6 @@
 const AvailableProduct = require('../../model/Brand_model/AvailableProduct');
 const FinalProduct = require('../../model/Brand_model/finalProduct')
 const Product = require('../../model/Brand_model/products');
-const InvUpc = require('../../model/Inventory_model/invUpc');
 const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const InvProduct = require('../../model/Inventory_model/invProduct');
 const AutoFetchData = require('../../model/Inventory_model/autofetchdata');
@@ -316,6 +315,10 @@ exports.uploaddata = async (req, res) => {
 };
 const generatesku=(upc,color,size)=>{
     if(color && size){
+     let a= size.split(' ');
+     a[1]= a[1].slice(0,1)
+     a=a.join('');
+     size=a
      color= color.replaceAll(' ','-').replaceAll('/','-').toUpperCase();
      let firstletter= color.charAt(0)
      color= color.slice(1)
@@ -335,11 +338,14 @@ const generatesku=(upc,color,size)=>{
          color= arr.join('-')
      }
    let sku='RC-R1-'+upc+'-'+firstletter+color+'-'+size
+   sku.replace('--','-')
+   sku.replace('--','-')
    return sku;
     }else{
      return null
     }
  }
+ 
 exports.uploadforcheck = async (req, res) => {
     try {
         
@@ -427,15 +433,6 @@ exports.uploadinvdata = async (req, res) => {
         return res.status(400).json({ msg: 'No valid data to process' });
     }
     InvProduct.insertMany(modifiedurldata)
-        .then(async () => {
-            const uniqueUpc = modifiedurldata
-                .map(item => item['Input UPC'].replace("UPC", "")) // Extract only the URLs
-                .filter((upc, index, self) => self.indexOf(upc) === index);
-            if (uniqueUpc.length > 0) {
-                var upcs = new InvUpc({ upc: uniqueUpc });
-                await upcs.save();
-            }
-        })
         .then(async () => {
             const uniqueUrls = modifiedurldata
                 .map(item => item['Product link'])
