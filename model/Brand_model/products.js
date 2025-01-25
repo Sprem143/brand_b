@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-
 const dataSchema = new mongoose.Schema({
     name: String,
     upc: String,
@@ -10,9 +9,6 @@ const dataSchema = new mongoose.Schema({
     size: String,
     sku:String,
     imgurl: String,
-    discount: Number,
-    onsale: Boolean,
-    offerend: String,
     url: String,
     imgurl: String
 });
