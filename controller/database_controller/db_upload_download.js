@@ -8,6 +8,7 @@ const Backup = require('../../model/Inventory_model/backup')
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
+const {generatesku}= require('../utils')
 // const Avlupc = require('../../model/Brand_model/avlupc');
 // const Varientupc = require('../../model/Brand_model/varientupc')
 
@@ -313,39 +314,8 @@ exports.uploaddata = async (req, res) => {
         res.send(err);
     }
 };
-const generatesku=(upc,color,size)=>{
-    if(color && size){
-     let a= size.split(' ');
-     a[1]= a[1].slice(0,1)
-     a=a.join('');
-     size=a
-     color= color.replaceAll(' ','-').replaceAll('/','-').toUpperCase();
-     let firstletter= color.charAt(0)
-     color= color.slice(1)
-     var modifiedColor=color
-     if(color.length>12){
-         let v=['A','E','I','O','U'];
-         for (let i of v){
-             modifiedColor  = color.replaceAll(i,'');
-             color= modifiedColor
-         }
-     }
-     if(color.length>12){
-         let arr= color.split('-');
-         for (let i=0; i<arr.length; i++){
-             arr[i]= arr[i].slice(0,3)
-         }
-         color= arr.join('-')
-     }
-   let sku='RC-R1-'+upc+'-'+firstletter+color+'-'+size
-   sku.replace('--','-')
-   sku.replace('--','-')
-   return sku;
-    }else{
-     return null
-    }
- }
- 
+
+
 exports.uploadforcheck = async (req, res) => {
     try {
         
