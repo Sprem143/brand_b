@@ -246,6 +246,34 @@ exports.exp = async (req, res) => {
         console.log(err)
     }
 }
+
+const getproducttype=(title)=>{
+  if(title){
+    const collection={
+        'Shoes':14, 'Shoe':14,  'Sandal':13,  'Sandals':13,  'Booties':16, 'Boot':16,  'Boots':16, 'Clog':14,  'Clogs':14,
+        'Slippers':13, 'Slipper':13, 'Loafer':14, 'Loafers':14,  'Sneaker':14, 'Sneakers':14,'T-Shirt': 11.5,'T-Shirts': 11.5,
+        'Jeans':13, 'Jean':13, 'Shorts':11.5, 'Short':11.5, 'Shirts':11.5, 'Shirt':11.5, 'Pants':11.5, 'Pant':11.5,
+        'Hoodie':15,'Pullover':15,'Sweatshirt':13, 'Sweatshirts':13, 'Jacket':15, 'Jackets':15, 'Blazer':21,
+        'Blazers':21, 'Kurta':11.5,'Legging':11.5, 'Kurti':11.5, 'Bra':10.5, 'Panty':10.5, 'Panties':10.5,'Underwear':10.5, 'Brief':10.5, 'Briefs':10.5,
+        'Hipster':10.5, 'Cardigan':11.5,'Neck Top':11.5,'Tank Top':11.5,'Skirt':11.5,'Open Front':11.5,'Peasant Top':11.5,
+        'Scoop Neck':11.5
+    }
+
+    const normalizedTitle = title.trim().toLowerCase();
+
+    // Iterate through the collection object
+    for (const [key, price] of Object.entries(collection)) {
+      if (normalizedTitle.includes(key.toLowerCase())) {
+        return price; // Return the price if a match is found
+      }
+    }
+  
+    return '#';
+  }else{
+    return '#'
+  }
+}
+
 // -----------upload asin-scope data-------------
 exports.uploaddata = async (req, res) => {
     try {
@@ -290,6 +318,7 @@ exports.uploaddata = async (req, res) => {
                 'Fees Breakdown': item['Fees Breakdown'],
                 'Product id': blkItem ? blkItem.productid : '',
                 'UPC': 'UPC' + item.UPC,
+                'Fulfillment Shipping':getproducttype(blkItem.name),
                 'Available Quantity': blkItem ? blkItem.quantity : 0,
                 'Product name': blkItem ? blkItem.name : '',
                 'Belk link': blkItem ? blkItem.url : '',
@@ -353,6 +382,7 @@ exports.uploadforcheck = async (req, res) => {
             'Fees Breakdown': d['Fees Breakdown'],
             'Product id': d['Product id'],
             'UPC':d.UPC || 'UPC'+d['Input EAN'],
+            'Fulfillment Shipping':getproducttype(d.Title),
             'Available Quantity': d['Available Quantity'],
             'Product name': d['Product name'],
             'Img link': d['Img link'],
