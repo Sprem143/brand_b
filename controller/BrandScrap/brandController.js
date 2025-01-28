@@ -107,39 +107,93 @@ const handleSecondPageScraping = async (urls) => {
     }
 };
 
+// exports.removeexistingurl = async (req, res) => {
+//     try {
+//         const file = req.file;
+//         if (!file) {
+//             return res.status(400).send('No file uploaded.');
+//         }
+//         const workbook = xlsx.readFile(file.path);
+//         const sheetName = workbook.SheetNames[0];
+//         const sheet = workbook.Sheets[sheetName];
+//         const data1 = xlsx.utils.sheet_to_json(sheet);
+
+//         let data = data1.filter((d) => d['Vendor URL'] !== undefined);
+//         data = data.map((d) => d['Vendor URL'].split(".html")[0] + ".html");
+//         data= data.filter((d,index,self)=> self.indexOf(d)===index)
+//         let url = await BrandUrl.find();
+//         let id = url[0]._id
+//         url = url[0].producturl
+//         url= url.filter((u,i,self)=>self.indexOf(u)===i)
+//         var count = 0
+//         url.forEach(async (u) => {
+//             if (data.includes(u)) {
+//                 count+=1
+//               url.splice(url.indexOf(u),1)
+//             }
+//         })
+//         await BrandUrl.findOneAndUpdate(
+//             {_id:id},
+//             {$set :{producturl:url}},
+//             {new:true}
+//         )
+//         res.status(200).json({status:true, count:count})
+//     } catch (err) {
+//         console.log(err)
+//         res.status(500).json({status:false, msg:err})
+//     }
+
+// }
+
+
+
 exports.removeexistingurl = async (req, res) => {
     try {
         const file = req.file;
-        if (!file) {
-            return res.status(400).send('No file uploaded.');
+        if (!file || !file.path) {
+            return res.status(400).json({ status: false, message: "No file uploaded or file path missing." });
         }
+
+        // Read and parse the uploaded Excel file
         const workbook = xlsx.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const data1 = xlsx.utils.sheet_to_json(sheet);
+        const parsedData = xlsx.utils.sheet_to_json(sheet);
 
-        let data = data1.filter((d) => d['Vendor URL'] !== undefined);
-        data = data.map((d) => d['Vendor URL'].split(".html")[0] + ".html");
-        let url = await BrandUrl.find();
-        let id = url[0]._id
-        url = url[0].producturl
-        var count = 0
-        url.forEach(async (u) => {
-            if (data.includes(u)) {
-                count+=1
-                await BrandUrl.updateOne(
-                    { _id: id },
-                    { $pull: { producturl: u} }
-                )
-               
-            }
-        })
-        res.status(200).json({status:true, count:count})
+        // Extract and deduplicate Vendor URLs
+        let vendorUrls = parsedData
+            .filter((d) => d['Vendor URL'])
+            .map((d) => d['Vendor URL'].split(".html")[0] + ".html"); 
+        vendorUrls = [...new Set(vendorUrls)]; 
+
+        // Fetch existing product URLs from the database
+        const brandUrl = await BrandUrl.findOne();
+        if (!brandUrl) {
+            return res.status(404).json({ status: false, message: "No BrandUrl data found in the database." });
+        }
+
+        let { _id, producturl: existingUrls } = brandUrl;
+        existingUrls = [...new Set(existingUrls)]; // Deduplicate existing URLs
+
+        // Remove matching URLs
+        const updatedUrls = existingUrls.filter((url) => !vendorUrls.includes(url));
+        const removedCount = existingUrls.length - updatedUrls.length;
+
+        // Update the database with the filtered URLs
+        await BrandUrl.findOneAndUpdate(
+            { _id },
+            { $set: { producturl: updatedUrls } },
+            { new: true }
+        );
+
+        // Send the response
+        res.status(200).json({ status: true, count:removedCount });
     } catch (err) {
-        console.log(err)
+        console.error("Error in removeExistingUrl:", err);
+        res.status(500).json({ status: false, msg: err.message });
     }
+};
 
-}
 
 const generateurl = async (num, url) => {
     if (url.includes('prefn1')) {
@@ -336,16 +390,21 @@ exports.getproduct = async (req, res) => {
     }
 };
 
-// const filtervarient = async (upc) => {
-//     let resu = await Varientupc.find();
-//     resu.map(async (r) => {
-//         if (r.upc.includes(upc)) {
-//             let newupclist = new Avlupc({ upc: r.upc });
-//             let re = await newupclist.save();
-//             console.log(re)
-//         }
-//     })
-// }
+exports.editshippingcost=async(req,res)=>{
+    try{
+       const {id,value}= req.body
+
+       await finalProduct.findOneAndUpdate(
+        {_id:id},
+        {$set:{'Fulfillment Shipping':value}},
+        {new:true}
+       )
+       res.status(200).json({status:true})
+    }catch(err){
+        console.log(err)
+        res.status(500).json({status:false, msg:err})
+    }
+}
 
 exports.pratical = async (req, res) => {
     // try {
