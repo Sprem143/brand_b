@@ -27,6 +27,7 @@ const dataSchema = new mongoose.Schema({
     'Fees Breakdown': String,
     'Product id':String,
     UPC:String,
+    'Fulfillment Shipping':String,
     'Available Quantity': Number,
     'Product name': String,
     'Img link': String,
