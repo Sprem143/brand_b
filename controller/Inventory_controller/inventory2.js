@@ -5,6 +5,7 @@ const cheerio = require('cheerio');
 const { ZenRows } = require("zenrows");
 const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const apikey = process.env.API_KEY;
+const { boscov } = require('../utils')
 
 function fetchoffer(html, couponcode) {
     try {
@@ -30,7 +31,7 @@ function fetchoffer(html, couponcode) {
                 eligiblecoupon = productData.coupon.coupons.filter((c) => c.couponCode === couponcode && c.isBelkTenderCoupon === false)
             }
             if (Array.isArray(eligiblecoupon) && eligiblecoupon.length > 0) {
-               return true;
+                return true;
             }
         } else {
             console.log("Product data not found in HTML.");
@@ -60,8 +61,7 @@ async function fetchAndExtractVariable(html, variableName) {
     return variableValue;
 }
 const saveData = async (utagData, url, id, couponcodeprice) => {
-    var datas = await InvProduct.find({'Product link':url});
-    console.log('data', datas)
+    var datas = await InvProduct.find({ 'Product link': url });
     const price = utagData.sku_price;
     const upc = utagData.sku_upc;
     const quantity = utagData.sku_inventory;
@@ -114,86 +114,95 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 exports.autofetchdata2 = async (req, res) => {
     try {
-        const client = new ZenRows(apikey);
         const url = req.body.link;
         const id = req.body.id
-        const request = await client.get(url, {
-            premium_proxy: true,
-            js_render: true,
-        });
-        const html = await request.text();
-        var utagData;
-        utagData = await fetchAndExtractVariable(html, 'utag_data');
-
-        if (!utagData) {
-            await delay(5000);
+        if (url.startsWith('https://www.boscovs.com')) {
+            let result = await boscov(url, id)
+            if (result) {
+                res.status(200).send(true);
+            } else {
+                throw new Error('Invalid URL or URL is not related to belk');
+            }
+        } else {
+            const client = new ZenRows(apikey);
             const request = await client.get(url, {
                 premium_proxy: true,
                 js_render: true,
             });
             const html = await request.text();
-            utagData = await fetchAndExtractVariable(html, 'utag_data');
-        }
-        const couponcode = utagData['product_promotedCoupon'][0].couponCode;
-        const isCoupon = couponcode !== undefined ? fetchoffer(html, couponcode) : null;
-        if (utagData) {
-            if (utagData.sku_inventory == []) {
-                let oosdata = await InvProduct.find({ 'Product link': url })
-                let oosproduct = oosdata.map((data) => {
-                    return {
-                        'Product link': url,
-                        'Current Quantity': 0,
-                        'Product price': data['Product price'],
-                        'Current Price': 0,
-                        'Image link': '',
-                        'Input UPC': data['Input UPC'],
-                        'Fulfillment': data['Fulfillment'],
-                        'Amazon Fees%': data['Amazon Fees%'],
-                        'Amazon link': data['Amazon link'],
-                        'Shipping Template': data['Shipping Template'],
-                        'Min Profit': data['Min Profit'],
-                        ASIN: data.ASIN,
-                        SKU: data.SKU,
-                    }
-                })
-                await AutoFetchData.insertMany(oosproduct);
-                await InvUrl1.updateOne(
-                    { _id: id },
-                    { $pull: { url: url } }
-                )
-                return res.status(200).send(true);
+            
+            var utagData = await fetchAndExtractVariable(html, 'utag_data');
+
+            if (!utagData) {
+                await delay(5000);
+                const request = await client.get(url, {
+                    premium_proxy: true,
+                    js_render: true,
+                });
+                const html = await request.text();
+                utagData = await fetchAndExtractVariable(html, 'utag_data');
             }
-            if (utagData.sku_inventory.length === 1 && utagData.sku_inventory[0] === '0') {
-                let oosdata = await InvProduct.find({ 'Product link': url })
-                await InvProduct.deleteMany({ 'Product link': url });
-                const oosproduct = oosdata.map((data) => {
-                    return {
-                        'Product link': url,
-                        'Current Quantity': 0,
-                        'Product price': data['Product price'],
-                        'Current Price': 0,
-                        'Image link': '',
-                        'Input UPC': data['Input UPC'],
-                        'Fulfillment': data['Fulfillment'],
-                        'Amazon Fees%': data['Amazon Fees%'],
-                        'Amazon link': data['Amazon link'],
-                        'Shipping Template': data['Shipping Template'],
-                        'Min Profit': data['Min Profit'],
-                        ASIN: data.ASIN,
-                        SKU: data.SKU,
-                    }
-                })
-                await AutoFetchData.insertMany(oosproduct);
-                await InvUrl1.updateOne(
-                    { _id: id },
-                    { $pull: { url: url } }
-                )
-                return res.status(200).send(true);
+            const couponcode = utagData['product_promotedCoupon'][0].couponCode;
+            const isCoupon = couponcode !== undefined ? fetchoffer(html, couponcode) : null;
+            if (utagData) {
+                if (utagData.sku_inventory == []) {
+                    let oosdata = await InvProduct.find({ 'Product link': url })
+                    let oosproduct = oosdata.map((data) => {
+                        return {
+                            'Product link': url,
+                            'Current Quantity': 0,
+                            'Product price': data['Product price'],
+                            'Current Price': 0,
+                            'Image link': '',
+                            'Input UPC': data['Input UPC'],
+                            'Fulfillment': data['Fulfillment'],
+                            'Amazon Fees%': data['Amazon Fees%'],
+                            'Amazon link': data['Amazon link'],
+                            'Shipping Template': data['Shipping Template'],
+                            'Min Profit': data['Min Profit'],
+                            ASIN: data.ASIN,
+                            SKU: data.SKU,
+                        }
+                    })
+                    await AutoFetchData.insertMany(oosproduct);
+                    await InvUrl1.updateOne(
+                        { _id: id },
+                        { $pull: { url: url } }
+                    )
+                    return res.status(200).send(true);
+                }
+                if (utagData.sku_inventory.length === 1 && utagData.sku_inventory[0] === '0') {
+                    let oosdata = await InvProduct.find({ 'Product link': url })
+                    await InvProduct.deleteMany({ 'Product link': url });
+                    const oosproduct = oosdata.map((data) => {
+                        return {
+                            'Product link': url,
+                            'Current Quantity': 0,
+                            'Product price': data['Product price'],
+                            'Current Price': 0,
+                            'Image link': '',
+                            'Input UPC': data['Input UPC'],
+                            'Fulfillment': data['Fulfillment'],
+                            'Amazon Fees%': data['Amazon Fees%'],
+                            'Amazon link': data['Amazon link'],
+                            'Shipping Template': data['Shipping Template'],
+                            'Min Profit': data['Min Profit'],
+                            ASIN: data.ASIN,
+                            SKU: data.SKU,
+                        }
+                    })
+                    await AutoFetchData.insertMany(oosproduct);
+                    await InvUrl1.updateOne(
+                        { _id: id },
+                        { $pull: { url: url } }
+                    )
+                    return res.status(200).send(true);
+                }
+                await saveData(utagData, url, id, isCoupon);
+                res.status(200).send(true);
+            } else {
+                throw new Error('Invalid URL or URL is not related to belk');
             }
-            await saveData(utagData, url, id, isCoupon);
-            res.status(200).send(true);
-        } else {
-            throw new Error('Invalid URL or URL is not related to belk');
         }
     } catch (error) {
         console.error(error.message);
