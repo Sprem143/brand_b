@@ -382,7 +382,7 @@ exports.uploadforcheck = async (req, res) => {
             'Fees Breakdown': d['Fees Breakdown'],
             'Product id': d['Product id'],
             'UPC':d.UPC || 'UPC'+d['Input EAN'],
-            'Fulfillment Shipping':getproducttype(d.Title),
+           'Fulfillment Shipping':d['Fulfillment Shipping'],
             'Available Quantity': d['Available Quantity'],
             'Product name': d['Product name'],
             'Img link': d['Img link'],
