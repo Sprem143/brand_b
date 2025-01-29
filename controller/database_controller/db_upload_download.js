@@ -407,8 +407,10 @@ exports.uploadforcheck = async (req, res) => {
 
 exports.uploadinvdata = async (req, res) => {
     let backupdata = await AutoFetchData.find();
-    const backup = new Backup({ data: backupdata });
-    await backup.save();
+    if(backupdata.length>0){
+        const backup = new Backup({ data: backupdata });
+        await backup.save();
+    }
     await InvProduct.deleteMany();
     await InvUrl1.deleteMany();
     await AutoFetchData.deleteMany();
@@ -505,3 +507,15 @@ exports.uploadinvdata2 = async (req, res) => {
             res.status(500).json({ msg: 'Error saving data to MongoDB' });
         });
 };
+
+// ---------download final product list for check---
+exports.deletedata= async(req,res)=>{
+    try{
+         let resp= await FinalProduct.deleteMany()
+         console.log(resp)
+          res.status(200).json({status:true})
+    }catch(err){
+        console.log(err);
+        res.stauts(500).json({status:false})
+    }
+}
