@@ -8,6 +8,7 @@ const { autofetchdata5 } = require('../controller/Inventory_controller/inventory
 const { autofetchdata6 } = require('../controller/Inventory_controller/inventory6');
 const { autofetchdata7 } = require('../controller/Inventory_controller/inventory7');
 const { autofetchdata8 } = require('../controller/Inventory_controller/inventory8');
+const {checkremainingdata,changeprice} = require('../controller/database_controller/database')
 
 
 router.post('/autofetchdata2', autofetchdata2);
@@ -17,5 +18,7 @@ router.post('/autofetchdata5', autofetchdata5);
 router.post('/autofetchdata6', autofetchdata6);
 router.post('/autofetchdata7', autofetchdata7);
 router.post('/autofetchdata8', autofetchdata8);
+router.get('/checkremainingdata',checkremainingdata)
+router.post('/changeprice',changeprice)
 
 module.exports = router;
