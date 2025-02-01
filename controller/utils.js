@@ -135,16 +135,15 @@ const boscov = async (url, id) => {
                 upper = p.upper.onSale ? p.upper.salePrice : p.lower.price
                 middle = productData.volumePriceBands[0].price.onSale ? productData.volumePriceBands[0].price.salePrice : productData.volumePriceBands[0].price.price;
                 price = upper
-                console.log(lower, price, upper)
             } else if (productData.volumePriceBands) {
                 price = productData.volumePriceBands[0].price.onSale ? productData.volumePriceBands[0].price.salePrice : productData.volumePriceBands[0].price.price
 
             }
-            console.log(price)
             let products = productData.variations.map((p) => ({
                 upc: p.upc,
                 price: price,
-                quantity: p.inventoryInfo.onlineStockAvailable
+                quantity: p.inventoryInfo.onlineStockAvailable,
+                color:p.options[0].value
             }))
             var arr = [lower, middle, upper]
             arr = arr.filter((a, i, self) => self.indexOf(a) == i)
@@ -160,6 +159,7 @@ const boscov = async (url, id) => {
                             'Current Price': p.price,
                             'PriceRange': arr,
                             'Image link': '',
+                            color:p.color,
                             'Input UPC': p.upc,
                             'Fulfillment': data['Fulfillment'],
                             'Amazon Fees%': data['Amazon Fees%'],
