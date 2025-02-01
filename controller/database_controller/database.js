@@ -3,7 +3,6 @@ const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const AutoFetchData = require('../../model/Inventory_model/autofetchdata');
 const Backup = require('../../model/Inventory_model/backup');
 const Product = require('../../model/Brand_model/products');
-const Varientupc = require('../../model/Brand_model/varientupc');
 const autofetchdata = require('../../model/Inventory_model/autofetchdata');
 
 // -----------send url list of product to home page------
@@ -82,18 +81,18 @@ exports.getupdatedproduct = async (req, res) => {
     }
 }
 // -------------download partial list of upc on brand scrapping page
-exports.downloadpartiallist = async (req, res) => {
-    try {
-        let result = await Varientupc.find({}, { upc: 1, _id: 0 });
-        let upclist = [];
-        result.forEach((r) => {
-            upclist.push(r.upc[Math.floor(r.upc.length / 2)])
-        })
-        res.status(200).json({ status: true, upc: upclist })
-    } catch (err) {
-        console.log(err)
-    }
-}
+// exports.downloadpartiallist = async (req, res) => {
+//     try {
+//         let result = await Varientupc.find({}, { upc: 1, _id: 0 });
+//         let upclist = [];
+//         result.forEach((r) => {
+//             upclist.push(r.upc[Math.floor(r.upc.length / 2)])
+//         })
+//         res.status(200).json({ status: true, upc: upclist })
+//     } catch (err) {
+//         console.log(err)
+//     }
+// }
 
 // ------------checkremainingdata----------------
 exports.checkremainingdata=async(req,res)=>{
