@@ -5,6 +5,7 @@ const cheerio = require('cheerio');
 const { ZenRows } = require("zenrows");
 const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const apikey = process.env.API_KEY;
+const { boscov } = require('../utils')
 
 function fetchoffer(html, couponcode) {
     try {
