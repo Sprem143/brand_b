@@ -363,7 +363,7 @@ exports.uploadforcheck = async (req, res) => {
             return {
             'Input EAN':d['Input EAN'],
             'ASIN': d.ASIN,
-            'Amazon link': d['Amazon link'],
+            'Amazon link': d['Amazon link'] || `https://www.amazon.com/dp/${d.ASIN}`,
             'Belk link':d['Belk link'],
             'EAN List': d['EAN List'],
             'MPN': d.MPN,
