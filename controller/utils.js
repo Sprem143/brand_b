@@ -125,38 +125,41 @@ const boscov = async (url, id) => {
         const html = await request.text();
         if (html) {
             const productData = extractProductData(html);
-             let oosproduct = [];
-              let oosdata = await InvProduct.find({ 'Product link': url })
-if(productData.variations.length==0){
-  oosdata.forEach((data) => {
-             
-                        oosproduct.push({
-                            'Product link': url,
-                            'Current Quantity': 0,
-                            'Product price': data['Product price'],
-                            'Current Price':0,
-                            'PriceRange': arr,
-                            'Image link': '',
-                            color:p.color,
-                            'Input UPC': p.upc,
-                            'Fulfillment': data['Fulfillment'],
-                            'Amazon Fees%': data['Amazon Fees%'],
-                            'Amazon link': data['Amazon link'],
-                            'Shipping Template': data['Shipping Template'],
-                            'Min Profit': data['Min Profit'],
-                            ASIN: data.ASIN,
-                            SKU: data.SKU,
-                        })
-                   
-            })
-    
-}else{
-    
-}
+            let oosproduct = [];
+            let oosdata = await InvProduct.find({ 'Product link': url })
+            if (productData.variations.length == 0) {
+                oosdata.forEach((data) => {
+
+                    oosproduct.push({
+                        'Product link': url,
+                        'Current Quantity': 0,
+                        'Product price': data['Product price'],
+                        'Current Price': 0,
+                        'PriceRange': arr,
+                        'Image link': '',
+                        color: p.color,
+                        'Input UPC': p.upc,
+                        'Fulfillment': data['Fulfillment'],
+                        'Amazon Fees%': data['Amazon Fees%'],
+                        'Amazon link': data['Amazon link'],
+                        'Shipping Template': data['Shipping Template'],
+                        'Min Profit': data['Min Profit'],
+                        ASIN: data.ASIN,
+                        SKU: data.SKU,
+                    })
+
+                })
+                let r = await AutoFetchData.insertMany(oosproduct);
+                await InvUrl1.updateOne(
+                    { _id: id },
+                    { $pull: { url: url } }
+                )
+                return true;
+            }
 
 
 
-            
+
             var lower, upper, price, middle;
             if (productData.volumePriceBands.length == 0) {
                 price = 0
@@ -175,11 +178,11 @@ if(productData.variations.length==0){
                 upc: p.upc,
                 price: price,
                 quantity: p.inventoryInfo.onlineStockAvailable,
-                color:p.options[0].value
+                color: p.options[0].value
             }))
             var arr = [lower, middle, upper]
             arr = arr.filter((a, i, self) => self.indexOf(a) == i)
-           
+
             oosdata.forEach((data) => {
                 products.map((p) => {
                     if (data['Input UPC'] == 'UPC' + p.upc) {
@@ -190,7 +193,7 @@ if(productData.variations.length==0){
                             'Current Price': p.price,
                             'PriceRange': arr,
                             'Image link': '',
-                            color:p.color,
+                            color: p.color,
                             'Input UPC': p.upc,
                             'Fulfillment': data['Fulfillment'],
                             'Amazon Fees%': data['Amazon Fees%'],
