@@ -125,6 +125,38 @@ const boscov = async (url, id) => {
         const html = await request.text();
         if (html) {
             const productData = extractProductData(html);
+             let oosproduct = [];
+              let oosdata = await InvProduct.find({ 'Product link': url })
+if(productData.variations.length==0){
+  oosdata.forEach((data) => {
+             
+                        oosproduct.push({
+                            'Product link': url,
+                            'Current Quantity': 0,
+                            'Product price': data['Product price'],
+                            'Current Price':0,
+                            'PriceRange': arr,
+                            'Image link': '',
+                            color:p.color,
+                            'Input UPC': p.upc,
+                            'Fulfillment': data['Fulfillment'],
+                            'Amazon Fees%': data['Amazon Fees%'],
+                            'Amazon link': data['Amazon link'],
+                            'Shipping Template': data['Shipping Template'],
+                            'Min Profit': data['Min Profit'],
+                            ASIN: data.ASIN,
+                            SKU: data.SKU,
+                        })
+                   
+            })
+    
+}else{
+    
+}
+
+
+
+            
             var lower, upper, price, middle;
             if (productData.volumePriceBands.length == 0) {
                 price = 0
@@ -147,8 +179,7 @@ const boscov = async (url, id) => {
             }))
             var arr = [lower, middle, upper]
             arr = arr.filter((a, i, self) => self.indexOf(a) == i)
-            let oosdata = await InvProduct.find({ 'Product link': url })
-            let oosproduct = [];
+           
             oosdata.forEach((data) => {
                 products.map((p) => {
                     if (data['Input UPC'] == 'UPC' + p.upc) {
