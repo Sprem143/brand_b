@@ -4,6 +4,7 @@ const AutoFetchData = require('../../model/Inventory_model/autofetchdata');
 const Backup = require('../../model/Inventory_model/backup');
 const Product = require('../../model/Brand_model/products');
 const autofetchdata = require('../../model/Inventory_model/autofetchdata');
+const BrandPage = require('../../model/Brand_model/brandpage');
 
 // -----------send url list of product to home page------
 exports.sendproductsurl = async (req, res) => {
@@ -128,5 +129,16 @@ console.log(allvarition)
  res.status(200).json({status:true, num:allvarition.length, data:updatedproduct})
     }catch(err){
         console.log
+    }
+}
+
+exports.cleardata=async(req,res)=>{
+    try{
+      await BrandUrl.deleteMany();
+      await BrandPage.deleteMany();
+      await Product.deleteMany()
+    }catch(err){
+        console.log(err);
+        res.status(500).json({status:false, msg:err})
     }
 }
