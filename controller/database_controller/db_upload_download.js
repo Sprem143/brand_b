@@ -564,7 +564,7 @@ exports.uploadinvdata3 = async (req, res) => {
         'SKU': d['Amazon SKU'],
         'Product price': d['Product Cost'],
         'Available Quantity': 0,
-        'Product link': d['Vendor URL'].split(".html")[0],
+        'Product link': d['Vendor URL'],
         'Fulfillment': d['Fulfillment Shipping'],
         'Amazon Fees%': d['Fees%'],
         'Shipping Template': d['Shipping template used on AZ']
