@@ -5,8 +5,8 @@ const upload = multer({ dest: 'uploads/' });
 
 const { autofetchdata } = require('../controller/Inventory_controller/inventory');
 const { fetchbrand, getproduct,deleteproduct,editsku,setchecked,removeexistingurl,editshippingcost} = require('../controller/BrandScrap/brandController');
-const {deletebackup ,getupdatedproduct, sendproductsurl, getinvlinks, getinvproduct,totalproducts } = require('../controller/database_controller/database');
-const { downloadInvSheet,downloadfinalSheet, uploadinvdata,uploadinvdata2, downloadExcel, uploaddata,uploadforcheck,deletedata} = require('../controller/database_controller/db_upload_download')
+const {deletebackup ,getupdatedproduct, sendproductsurl, getinvlinks, getinvproduct,totalproducts,cleardata } = require('../controller/database_controller/database');
+const { downloadInvSheet,downloadfinalSheet, uploadinvdata,uploadinvdata2,uploadinvdata3, downloadExcel, uploaddata,uploadforcheck,deletedata,downloadProductExcel} = require('../controller/database_controller/db_upload_download')
 const {getproduct1}=require('../controller/BrandScrap/thread1')
 const {getproduct2}=require('../controller/BrandScrap/thread2')
 const {getproduct3}=require('../controller/BrandScrap/thread3')
@@ -20,17 +20,23 @@ const {getproduct8}=require('../controller/BrandScrap/thread8')
 router.post('/fetchbrand', fetchbrand);
 router.get('/scrapproduct', getproduct);
 router.get('/download-excel', downloadExcel);
+router.get('/downloadProductExcel', downloadProductExcel);
 router.get('/download-inventory', downloadInvSheet);
 router.get('/downloadfinalSheet', downloadfinalSheet);
 router.get('/getproducturl', sendproductsurl);
 router.get('/getinvurl', getinvlinks);
 router.get('/getinvproduct', getinvproduct);
+router.get('/cleardata', cleardata);
 router.post('/upload', upload.single('file'), uploaddata);
 router.post('/uploadforcheck', upload.single('file'), uploadforcheck);
 router.post('/removeexistingurl', upload.single('file'), removeexistingurl);
 router.post('/editshippingcost', editshippingcost);
 router.post('/uploadinvfile', upload.single('file'), uploadinvdata);
+// ------------belk source file upload
 router.post('/uploadinvfile2', upload.single('file'), uploadinvdata2);
+// ----------boscovs source file upload---------
+router.post('/uploadinvfile3', upload.single('file'), uploadinvdata3);
+
 router.post('/autofetchdata', autofetchdata);
 router.get('/getupdatedproduct', getupdatedproduct);
 router.get('/totalproducts', totalproducts);
