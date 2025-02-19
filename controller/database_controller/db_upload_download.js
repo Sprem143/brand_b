@@ -8,10 +8,39 @@ const Backup = require('../../model/Inventory_model/backup')
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
-const {generatesku}= require('../utils')
+
 // const Avlupc = require('../../model/Brand_model/avlupc');
 // const Varientupc = require('../../model/Brand_model/varientupc')
-
+const generatesku = (upc, color, size) => {
+    if (color && size) {
+       
+       size= size.slice(0,4)
+        color = color.replaceAll(' ', '-').replaceAll('/', '-').toUpperCase();
+        let firstletter = color.charAt(0)
+        color = color.slice(1)
+        var modifiedColor = color
+        if (color.length > 12) {
+            let v = ['A', 'E', 'I', 'O', 'U'];
+            for (let i of v) {
+                modifiedColor = color.replaceAll(i, '');
+                color = modifiedColor
+            }
+        }
+        if (color.length > 12) {
+            let arr = color.split('-');
+            for (let i = 0; i < arr.length; i++) {
+                arr[i] = arr[i].slice(0, 3)
+            }
+            color = arr.join('-')
+        }
+        let sku = 'RC-R1-' + upc + '-' + firstletter + color + '-' + size
+        sku.replace('--', '-')
+        sku.replace('--', '-')
+        return sku;
+    } else {
+        return null
+    }
+}
 // ---------brand search result------
 exports.downloadfinalSheet = async (req, res) => {
     try {
@@ -256,7 +285,7 @@ const getproducttype=(title)=>{
         'Hoodie':15,'Pullover':15,'Sweatshirt':13, 'Sweatshirts':13, 'Jacket':15, 'Jackets':15, 'Blazer':21,
         'Blazers':21, 'Kurta':11.5,'Legging':11.5, 'Kurti':11.5, 'Bra':10.5, 'Panty':10.5, 'Panties':10.5,'Underwear':10.5, 'Brief':10.5, 'Briefs':10.5,
         'Hipster':10.5, 'Cardigan':11.5,'Neck Top':11.5,'Tank Top':11.5,'Skirt':11.5,'Open Front':11.5,'Peasant Top':11.5,
-        'Scoop Neck':11.5
+        'Scoop Neck':11.5,'Flat':13
     }
 
     const normalizedTitle = title.trim().toLowerCase();
@@ -358,7 +387,6 @@ exports.uploadforcheck = async (req, res) => {
         const sheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(sheet);
         const filteredData = data.filter(row => row.ASIN !== '-');
-       
         const jsondata = filteredData.map((d) => {
             return {
             'Input EAN':d['Input EAN'],
@@ -382,20 +410,21 @@ exports.uploadforcheck = async (req, res) => {
             'Fees Breakdown': d['Fees Breakdown'],
             'Product id': d['Product id'],
             'UPC':d.UPC || 'UPC'+d['Input EAN'],
-           'Fulfillment Shipping':d['Fulfillment Shipping'],
+            'Fulfillment Shipping':getproducttype(d.Title),
             'Available Quantity': d['Available Quantity'],
             'Product name': d['Product name'],
-            'Img link': d['Img link'],
             'Product Currency':d['Product Currency'],
             'Product price': d['Product price'],
             'Category': d['Category'],
             'Soldby':d['Soldby'],
             'Size':d['Size'],
             'Color':d['Color'],
-            SKU: d.SKU || generatesku(d['Input EAN'],d.Color,d.Size),
+            'isCheked':d.isChecked,
+            SKU:d.SKU || generatesku(d['UPC'],d.Color,d.Size),
             'Any other variations': d['Any other variations'],
             };
         });        
+        console.log(jsondata[0])
        await FinalProduct.insertMany(jsondata)
 
         res.status(200).send("File uploaded successfully")
@@ -454,6 +483,7 @@ exports.uploadinvdata = async (req, res) => {
         });
 };
 
+// -------------upload direct source file for belk----------
 exports.uploadinvdata2 = async (req, res) => {
     let backupdata = await AutoFetchData.find();
     const backup = new Backup({ data: backupdata });
@@ -508,14 +538,84 @@ exports.uploadinvdata2 = async (req, res) => {
         });
 };
 
+// -------------upload direct source file for boscovs----------
+exports.uploadinvdata3 = async (req, res) => {
+    let backupdata = await AutoFetchData.find();
+    const backup = new Backup({ data: backupdata });
+    await backup.save();
+    await InvProduct.deleteMany();
+    await InvUrl1.deleteMany();
+    await AutoFetchData.deleteMany();
+    const file = req.file;
+    if (!file) {
+        return res.status(400).send('No file uploaded.');
+    }
+
+    const workbook = xlsx.readFile(file.path);
+    const sheetName = workbook.SheetNames[3]; // Read first sheet
+    const sheet = workbook.Sheets[sheetName];
+
+    const data1 = xlsx.utils.sheet_to_json(sheet);
+    const data = data1.filter((d) => d['ASIN'] !== undefined && d['upc'] !== undefined);
+    const modifiedurldata = data.map((d) =>
+    ({
+        'Input UPC': d['For Scrapping use'],
+        'ASIN': d.ASIN,
+        'SKU': d['Amazon SKU'],
+        'Product price': d['Product Cost'],
+        'Available Quantity': 0,
+        'Product link': d['Vendor URL'].split(".html")[0] + ".html",
+        'Fulfillment': d['Fulfillment Shipping'],
+        'Amazon Fees%': d['Fees%'],
+        'Shipping Template': d['Shipping template used on AZ']
+    }))
+    if (modifiedurldata.length === 0) {
+        console.log("no data")
+        return res.status(400).json({ msg: 'No valid data to process' });
+    }
+    InvProduct.insertMany(modifiedurldata)
+        .then(async () => {
+            const uniqueUrls = modifiedurldata
+                .map(item => item['Product link'])
+                .filter((url, index, self) => self.indexOf(url) === index);
+
+            if (uniqueUrls.length > 0) {
+                let urls = new InvUrl1({ url: uniqueUrls });
+                await urls.save();
+                res.status(200).json({ msg: 'Data successfully uploaded' });
+            } else {
+                res.status(200).json({ msg: 'No unique URLs to process' });
+            }
+        })
+        .catch(err => {
+            console.error('Error saving data to MongoDB:', err);
+            res.status(500).json({ msg: 'Error saving data to MongoDB' });
+        });
+};
+
 // ---------download final product list for check---
 exports.deletedata= async(req,res)=>{
     try{
          let resp= await FinalProduct.deleteMany()
-         console.log(resp)
           res.status(200).json({status:true})
     }catch(err){
         console.log(err);
         res.stauts(500).json({status:false})
+    }
+}
+
+// ----------download row product list fetch from url----
+exports.downloadProductExcel=async(req,res)=>{
+    try{
+    let productlist= await Product.find();
+    console.log(productlist.length)
+    if(productlist.length>0){
+        res.status(200).json({status:true, data:productlist})
+    }else{
+        res.status(404).json({status:true,msg:"No data found"})
+    }
+    }catch(err){
+        console.log(err);
+        res.status(500).json({status:false, msg:err})
     }
 }
