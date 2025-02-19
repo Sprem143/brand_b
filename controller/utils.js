@@ -6,7 +6,8 @@ const cheerio = require('cheerio');
 const { ZenRows } = require("zenrows");
 const InvUrl1 = require('../model/Inventory_model/invUrl1');
 const apikey = process.env.API_KEY;
-
+const BrandUrl= require('../model/Brand_model/brandurl')
+const Product= require('../model/Brand_model/products')
 const generatesku = (upc, color, size) => {
     if (color && size) {
         let a = size.split(' ');
@@ -112,7 +113,8 @@ function extractProductData(html) {
     const volumePriceBands = productData?.volumePriceBands || null
     const upCs = productData?.upCs || [];
     const variations = productData?.variations || [];
-    return { volumePriceBands, upCs, variations };
+    const img = productData?.mainImage.src || null;
+    return { volumePriceBands, upCs, variations,img };
 }
 
 const boscov = async (url, id) => {
@@ -125,41 +127,7 @@ const boscov = async (url, id) => {
         const html = await request.text();
         if (html) {
             const productData = extractProductData(html);
-            let oosproduct = [];
-            let oosdata = await InvProduct.find({ 'Product link': url })
-            if (productData.variations.length == 0) {
-                oosdata.forEach((data) => {
-
-                    oosproduct.push({
-                        'Product link': url,
-                        'Current Quantity': 0,
-                        'Product price': data['Product price'],
-                        'Current Price': 0,
-                        'PriceRange': arr,
-                        'Image link': '',
-                        color:'',
-                        'Input UPC': data['Input UPC'],
-                        'Fulfillment': data['Fulfillment'],
-                        'Amazon Fees%': data['Amazon Fees%'],
-                        'Amazon link': data['Amazon link'],
-                        'Shipping Template': data['Shipping Template'],
-                        'Min Profit': data['Min Profit'],
-                        ASIN: data.ASIN,
-                        SKU: data.SKU,
-                    })
-
-                })
-                let r = await AutoFetchData.insertMany(oosproduct);
-                await InvUrl1.updateOne(
-                    { _id: id },
-                    { $pull: { url: url } }
-                )
-                return true;
-            }
-
-
-
-
+            // console.log(productData)
             var lower, upper, price, middle;
             if (productData.volumePriceBands.length == 0) {
                 price = 0
@@ -182,10 +150,11 @@ const boscov = async (url, id) => {
             }))
             var arr = [lower, middle, upper]
             arr = arr.filter((a, i, self) => self.indexOf(a) == i)
-
+            let oosdata = await InvProduct.find({ 'Product link': url })
+            let oosproduct = [];
             oosdata.forEach((data) => {
                 products.map((p) => {
-                    if (data['Input UPC'] == 'UPC' + p.upc) {
+                    if (data['Input UPC'] ==  p.upc || data['Input UPC'] ==  'UPC'+p.upc) {
                         oosproduct.push({
                             'Product link': url,
                             'Current Quantity': p.quantity,
@@ -206,6 +175,7 @@ const boscov = async (url, id) => {
                     }
                 })
             })
+
             let r = await AutoFetchData.insertMany(oosproduct);
             await InvUrl1.updateOne(
                 { _id: id },
@@ -221,4 +191,54 @@ const boscov = async (url, id) => {
     }
 }
 
-module.exports = { generatesku, fetchAndExtractVariable, fetchProductData, extractProductData, boscov }
+const boscovbrandscraper = async (url, id) => {
+    try {
+        const client = new ZenRows(apikey);
+        const request = await client.get(url, {
+            premium_proxy: true,
+            js_render: true,
+        });
+        const html = await request.text();
+        if (html) {
+            const productData = extractProductData(html);
+            var lower, upper, price, middle;
+            if (productData.volumePriceBands.length == 0) {
+                price = 0
+            }
+            else if (productData && productData.volumePriceBands[0].priceRange) {
+                const p = productData.volumePriceBands[0].priceRange
+                lower = p.lower.onSale ? p.lower.salePrice : p.lower.price
+                upper = p.upper.onSale ? p.upper.salePrice : p.lower.price
+                middle = productData.volumePriceBands[0].price.onSale ? productData.volumePriceBands[0].price.salePrice : productData.volumePriceBands[0].price.price;
+                price = upper
+            } else if (productData.volumePriceBands) {
+                price = productData.volumePriceBands[0].price.onSale ? productData.volumePriceBands[0].price.salePrice : productData.volumePriceBands[0].price.price
+            }
+            var arr = [lower, middle, upper]
+            arr = arr.filter((a, i, self) => self.indexOf(a) == i)
+            const img= productData.img
+
+            let products = productData.variations.map((p) => ({
+                upc: p.upc,
+                price: price,
+                sku:generatesku(p.upc,p.options[0].value,p.options[1].value),
+                pricerange:arr,
+                quantity: p.inventoryInfo.onlineStockAvailable,
+                color: p.options[0].value,
+                size: p.options[1].value,
+                imgurl:img,
+                url: url
+            }))
+           
+            await Product.insertMany(products)
+            return true;
+        } else {
+            return false
+        }
+    } catch (err) {
+        console.log(err);
+        return false
+    }
+}
+
+module.exports = { generatesku, fetchAndExtractVariable, fetchProductData, extractProductData, boscov,boscovbrandscraper }
