@@ -25,6 +25,7 @@ exports.getdata = async(req, res) => {
 exports.getbackup = async(req, res) => {
     try {
        let filename = await Backup.find({}, { name: 1, _id: 0 } );
+        console.log(filename)
         let lastfile= filename[filename.length-1].name
         let data= await Backup.findOne({name:lastfile})
      let resultData=[data]
