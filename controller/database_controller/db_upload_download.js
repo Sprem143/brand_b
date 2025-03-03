@@ -5,16 +5,16 @@ const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const InvProduct = require('../../model/Inventory_model/invProduct');
 const AutoFetchData = require('../../model/Inventory_model/autofetchdata');
 const Backup = require('../../model/Inventory_model/backup')
+const Outofstock = require('../../model/Inventory_model/outofstock')
+const Exclude = require('../../model/Inventory_model/Exclude')
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
 
-// const Avlupc = require('../../model/Brand_model/avlupc');
-// const Varientupc = require('../../model/Brand_model/varientupc')
 const generatesku = (upc, color, size) => {
     if (color && size) {
-       
-       size= size.slice(0,4)
+
+        size = size.slice(0, 4)
         color = color.replaceAll(' ', '-').replaceAll('/', '-').toUpperCase();
         let firstletter = color.charAt(0)
         color = color.slice(1)
@@ -34,8 +34,8 @@ const generatesku = (upc, color, size) => {
             color = arr.join('-')
         }
         let sku = 'RC-R1-' + upc + '-' + firstletter + color + '-' + size
-        sku.replace('--', '-')
-        sku.replace('--', '-')
+        sku.replaceAll('---', '-')
+        sku.replaceAll('--', '-')
         return sku;
     } else {
         return null
@@ -44,75 +44,12 @@ const generatesku = (upc, color, size) => {
 // ---------brand search result------
 exports.downloadfinalSheet = async (req, res) => {
     try {
-    //     const amz = await AvailableProduct.find();
-    //     const blk = await Product.find();
-    //     const brand = amz[0].Brand;
 
-    //     // Create a map for quick access to blk products by UPC
-    //     const blkMap = new Map(blk.map(product => [product.upc, product]));
-    //     // Filter and map data to the desired format
-    //     const jsondata = amz.map((item) => {
-    //         const blkItem = blkMap.get(item.UPC);
-    //         return {
-    //             'Input EAN': 'UPC' + item.UPC,
-    //             'SKU':blkItem ? blkItem.sku : '',
-    //             'ASIN': item.ASIN,
-    //             'Amazon link': item['Amazon link'],
-    //             'Belk link': blkItem ? blkItem.url : '',
-    //             'EAN List': item['EAN List'],
-    //             'MPN': item.MPN,
-    //             'ISBN': item.ISBN,
-    //             'Title': item.Title,
-    //             'Brand': brand,
-    //             'Dimensions (in)': item['Dimensions (in)'],
-    //             'Weight (lb)': item['Weight (lb)'],
-    //             'Image link': item['Image link'],
-    //             'Lowest Price (USD)': item['Lowest Price (USD)'],
-    //             'Number of Sellers': item['Number of Sellers'],
-    //             'BSR': item.BSR,
-    //             'Product Category': item['Product Category'],
-    //             'Buy Box Price (USD)': item['Buy Box Price (USD)'],
-    //             'FBA Fees': item['FBA Fees'],
-    //             'Fees Breakdown': item['Fees Breakdown'],
-    //             'Product id': blkItem ? blkItem.productid : '',
-    //             'UPC': 'UPC' + item.UPC,
-    //             'Available Quantity': blkItem ? blkItem.quantity : 0,
-    //             'Product name': blkItem ? blkItem.name : '',
-    //             'Belk link': blkItem ? blkItem.url : '',
-    //             'Img link': blkItem ? blkItem.imgurl : '',
-    //             'Product Currency': 'USD',
-    //             'Product price': blkItem ? blkItem.price : 0,
-    //             'Category': '',
-    //             'Soldby': 'Belk',
-    //             'Size': blkItem ? blkItem.size : '',
-    //             'Color': blkItem ? blkItem.color : '',
-    //             'Any other variations': ''
-    //         };
-    //     });
-    //     // ----------filter jsondata---------
-    //     const newJson = jsondata.filter((json) => json['Product price'] > 0)
-    //    await FinalProduct.insertMany(newJson)
-    //    res.status(200).json({status:true, data:newJson})
-        // const worksheet = xlsx.utils.json_to_sheet(newJson);
-        // const workbook = xlsx.utils.book_new();
-        // xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
-
-        // const filePath = path.join(__dirname, 'finalsheet.xlsx');
-        // xlsx.writeFile(workbook, filePath);
-
-        // // Send file for download and delete after sending
-        // res.download(filePath, (err) => {
-        //     if (err) {
-        //         console.error('Error sending file:', err);
-        //     }
-        //     fs.unlinkSync(filePath);
-        // });
-
-        let data =await FinalProduct.find();
-        if(data.length>0){
-            res.status(200).json({status:true, data:data})
-        }else{
-            res.status(404).json({status:false, msg:"Server error"})
+        let data = await FinalProduct.find();
+        if (data.length > 0) {
+            res.status(200).json({ status: true, data: data })
+        } else {
+            res.status(404).json({ status: false, msg: "Server error" })
         }
 
     } catch (err) {
@@ -121,66 +58,6 @@ exports.downloadfinalSheet = async (req, res) => {
     }
 };
 
-// ---------download upc list scrapped from brand url----------
-// const filtervarient = async (upc) => {
-//     let resu = await Varientupc.find();
-//     resu.map(async (r) => {
-//         if (r.upc.includes(upc)) {
-//             let newupclist = new Avlupc({ upc: r.upc });
-//             await newupclist.save();
-//         }
-//     })
-// }
-
-// const filterupc = async () => {
-//     // let resultdata = await AvailableProduct.find({}, { UPC: 1, _id: 0 });
-//     let resu = await Varientupc.find();
-//     let resultdata = ['0438765402843', '0438765408746', '0438765406070', '0438765408579']
-//     resultdata.forEach(e => {
-//         resu.map(async (r) => {
-//             if (r.upc.includes(e)) {
-//                 let newupclist = new Avlupc({ upc: r.upc });
-//                 await newupclist.save();
-//             }
-//         })
-//     });
-// }
-// exports.downloadExcel = async (req, res) => {
-//     try {
-
-//     // let resultdata = await AvailableProduct.find({}, { UPC: 1, _id: 0 });
-//    let resultdata=['0438765402843', '0438765408746', '0438765406070', '0438765408579']
-//     let data = await Avlupc.find({});
-//         let result=[];
-//          data.forEach((d)=>{
-//            result.push(d.upc)
-//         })
-//        result=result.flat();
-//       resultdata.forEach((e)=>{
-//           result.splice(result.indexOf(e),1);
-//       })
-//       console.log(result)
-//         let jsondata=result.map((r)=>({
-//             upc:r
-//         }))
-//         const worksheet = xlsx.utils.json_to_sheet(jsondata);
-//         const workbook = xlsx.utils.book_new();
-
-//         xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
-//         const filePath = path.join(__dirname, 'data.xlsx');
-//         xlsx.writeFile(workbook, filePath);
-
-//         // Send the Excel file for download
-//         res.download(filePath, (err) => {
-//             if (err) {
-//                 console.error('Error sending file:', err);
-//             }
-//             fs.unlinkSync(filePath);
-//         });
-//     } catch (err) {
-//         console.log(err)
-//     }
-// }
 
 exports.downloadExcel = async (req, res) => {
     try {
@@ -207,9 +84,56 @@ exports.downloadExcel = async (req, res) => {
     }
 }
 // ---------download inventory updated sheet----------
+
+function getDateDifference(date1) {
+    // Convert dd/mm/yyyy to Date object
+    const [d1, m1, y1] = date1.split("/").map(Number);
+    const [d2, m2, y2] = new Date().toLocaleDateString("en-GB").split("/").map(Number);
+
+    const firstDate = new Date(y1, m1 - 1, d1); 
+    const secondDate = new Date(y2, m2 - 1, d2);
+
+    const diffTime = Math.abs(secondDate - firstDate);
+
+    // Convert milliseconds to days
+    const diff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diff > 28 ? true : false
+}
+
 exports.downloadInvSheet = async (req, res) => {
     try {
+        const prevoos = await Outofstock.find();
+        let filteredPrev = [];
+        for (let prev of prevoos) {
+            let autoFetchData = await AutoFetchData.findOne({ 'Input UPC': prev['Input UPC'] });
+            if (autoFetchData && autoFetchData['Current Quantity'] == 0) {
+                filteredPrev.push(prev);
+            }
+        }
+        let asinlist = filteredPrev.map((f) => f.ASIN)
+        await Outofstock.deleteMany({ ASIN: { $in: asinlist } });
+
+        // ----------remove product which is out of stock from 1 month-------
+        let excludeproduct = prevoos.filter((p) => getDateDifference(p.Date))
+        let exclude = []
+        for (let o of excludeproduct) {
+            let product = await Exclude.findOne({ ASIN: o.ASIN });
+            if (!product) {
+                exclude.push(o);
+            }
+        }
+        await Exclude.insertMany(exclude)
+        // -------------- save new out of stock data-----
         const data = await AutoFetchData.find();
+        let outofstock = data.filter((d) => d['Current Quantity'] < 3);
+        let newproduct = []
+        for (let o of outofstock) {
+            let product = await Outofstock.findOne({ ASIN: o.ASIN });
+            if (!product) {
+                newproduct.push(o);
+            }
+        }
+        await Outofstock.insertMany(newproduct)
         var jsondata = data.map((item) => {
             return {
                 'Input UPC': item['Input UPC'],
@@ -228,11 +152,9 @@ exports.downloadInvSheet = async (req, res) => {
                 'Current Quantity': item['Current Quantity']
             }
         });
-        console.log(jsondata.length)
         let udata = jsondata.filter((product, index, self) =>
             index === self.findIndex(p => p['Input UPC'] === product['Input UPC'])
         );
-        console.log(data.length)
 
         const worksheet = xlsx.utils.json_to_sheet(udata);
         const workbook = xlsx.utils.book_new();
@@ -252,55 +174,32 @@ exports.downloadInvSheet = async (req, res) => {
     }
 };
 
-exports.exp = async (req, res) => {
-    try {
-    //     console.log('exp function')
-    //     let availableupc = await AvailableProduct.find({}, { UPC: 1, _id: 0 });
-    //     let au= availableupc.map((a)=> a.UPC);
-    //     console.log(au.length)
-    //     let result = await Varientupc.find({}, { upc: 1, _id: 0 });
-    //     let upclist = [];
-    //     result.forEach((r) => {
-    //         upclist.push(r.upc[Math.floor(r.upc.length / 2)])
-    //     })
-    //     console.log(upclist.length)
-    //  let exparr=[];
-    //  upclist.forEach((u)=>{
-    //     if(au.includes(u)){
-    //         exparr.push(u)
-    //     }
-    //  })
 
-    } catch (err) {
-        console.log(err)
+const getproducttype = (title) => {
+    if (title) {
+        const collection = {
+            'Shoes': 14, 'Shoe': 14, 'Sandal': 13, 'Sandals': 13, 'Booties': 16, 'Boot': 16, 'Boots': 16, 'Clog': 14, 'Clogs': 14,
+            'Slippers': 13, 'Slipper': 13, 'Loafer': 14, 'Loafers': 14, 'Sneaker': 14, 'Sneakers': 14, 'T-Shirt': 11.5, 'T-Shirts': 11.5,
+            'Jeans': 13, 'Jean': 13, 'Shorts': 11.5, 'Short': 11.5, 'Shirts': 11.5, 'Shirt': 11.5, 'Pants': 11.5, 'Pant': 11.5,
+            'Hoodie': 15, 'Pullover': 15, 'Sweatshirt': 13, 'Sweatshirts': 13, 'Jacket': 15, 'Jackets': 15, 'Blazer': 21,
+            'Blazers': 21, 'Kurta': 11.5, 'Legging': 11.5, 'Kurti': 11.5, 'Bra': 10.5, 'Panty': 10.5, 'Panties': 10.5, 'Underwear': 10.5, 'Brief': 10.5, 'Briefs': 10.5,
+            'Hipster': 10.5, 'Cardigan': 11.5, 'Neck Top': 11.5, 'Tank Top': 11.5, 'Skirt': 11.5, 'Open Front': 11.5, 'Peasant Top': 11.5,
+            'Scoop Neck': 11.5, 'Flat': 13
+        }
+
+        const normalizedTitle = title.trim().toLowerCase();
+
+        // Iterate through the collection object
+        for (const [key, price] of Object.entries(collection)) {
+            if (normalizedTitle.includes(key.toLowerCase())) {
+                return price; // Return the price if a match is found
+            }
+        }
+
+        return '#';
+    } else {
+        return '#'
     }
-}
-
-const getproducttype=(title)=>{
-  if(title){
-    const collection={
-        'Shoes':14, 'Shoe':14,  'Sandal':13,  'Sandals':13,  'Booties':16, 'Boot':16,  'Boots':16, 'Clog':14,  'Clogs':14,
-        'Slippers':13, 'Slipper':13, 'Loafer':14, 'Loafers':14,  'Sneaker':14, 'Sneakers':14,'T-Shirt': 11.5,'T-Shirts': 11.5,
-        'Jeans':13, 'Jean':13, 'Shorts':11.5, 'Short':11.5, 'Shirts':11.5, 'Shirt':11.5, 'Pants':11.5, 'Pant':11.5,
-        'Hoodie':15,'Pullover':15,'Sweatshirt':13, 'Sweatshirts':13, 'Jacket':15, 'Jackets':15, 'Blazer':21,
-        'Blazers':21, 'Kurta':11.5,'Legging':11.5, 'Kurti':11.5, 'Bra':10.5, 'Panty':10.5, 'Panties':10.5,'Underwear':10.5, 'Brief':10.5, 'Briefs':10.5,
-        'Hipster':10.5, 'Cardigan':11.5,'Neck Top':11.5,'Tank Top':11.5,'Skirt':11.5,'Open Front':11.5,'Peasant Top':11.5,
-        'Scoop Neck':11.5,'Flat':13
-    }
-
-    const normalizedTitle = title.trim().toLowerCase();
-
-    // Iterate through the collection object
-    for (const [key, price] of Object.entries(collection)) {
-      if (normalizedTitle.includes(key.toLowerCase())) {
-        return price; // Return the price if a match is found
-      }
-    }
-  
-    return '#';
-  }else{
-    return '#'
-  }
 }
 
 // -----------upload asin-scope data-------------
@@ -318,7 +217,7 @@ exports.uploaddata = async (req, res) => {
         await AvailableProduct.deleteMany();
         await FinalProduct.deleteMany();
         await AvailableProduct.insertMany(filteredData);
-        const amz =filteredData?filteredData: await AvailableProduct.find();
+        const amz = filteredData ? filteredData : await AvailableProduct.find();
         const blk = await Product.find();
         const brand = amz[0].Brand;
         const blkMap = new Map(blk.map(product => [product.upc, product]));
@@ -326,7 +225,7 @@ exports.uploaddata = async (req, res) => {
             const blkItem = blkMap.get(item.UPC);
             return {
                 'Input EAN': 'UPC' + item.UPC,
-                'SKU':blkItem ? blkItem.sku : '',
+                'SKU': blkItem ? blkItem.sku : '',
                 'ASIN': item.ASIN,
                 'Amazon link': item['Amazon link'],
                 'Belk link': blkItem ? blkItem.url : '',
@@ -347,7 +246,7 @@ exports.uploaddata = async (req, res) => {
                 'Fees Breakdown': item['Fees Breakdown'],
                 'Product id': blkItem ? blkItem.productid : '',
                 'UPC': 'UPC' + item.UPC,
-                'Fulfillment Shipping':getproducttype(blkItem.name),
+                'Fulfillment Shipping': getproducttype(blkItem.name),
                 'Available Quantity': blkItem ? blkItem.quantity : 0,
                 'Product name': blkItem ? blkItem.name : '',
                 'Belk link': blkItem ? blkItem.url : '',
@@ -362,9 +261,9 @@ exports.uploaddata = async (req, res) => {
             };
         });
         // ----------filter jsondata---------
-        
+
         const newJson = jsondata.filter((json) => json['Product price'] > 0)
-       await FinalProduct.insertMany(newJson)
+        await FinalProduct.insertMany(newJson)
 
         res.status(200).send("File uploaded successfully")
     } catch (err) {
@@ -376,7 +275,7 @@ exports.uploaddata = async (req, res) => {
 
 exports.uploadforcheck = async (req, res) => {
     try {
-        
+
         const file = req.file;
         if (!file) {
             return res.status(400).send('No file uploaded.');
@@ -389,43 +288,42 @@ exports.uploadforcheck = async (req, res) => {
         const filteredData = data.filter(row => row.ASIN !== '-');
         const jsondata = filteredData.map((d) => {
             return {
-            'Input EAN':d['Input EAN'],
-            'ASIN': d.ASIN,
-            'Amazon link': d['Amazon link'] || `https://www.amazon.com/dp/${d.ASIN}`,
-            'Belk link':d['Belk link'],
-            'EAN List': d['EAN List'],
-            'MPN': d.MPN,
-            'ISBN': d.ISBN,
-            'Title': d.Title,
-            'Brand': d.Brand,
-            'Dimensions (in)': d['Dimensions (in)'],
-            'Weight (lb)': d['Weight (lb)'],
-            'Image link': d['Image link'],
-            'Lowest Price (USD)': d['Lowest Price (USD)'],
-            'Number of Sellers': d['Number of Sellers'],
-            'BSR': d.BSR,
-            'Product Category': d['Product Category'],
-            'Buy Box Price (USD)': d['Buy Box Price (USD)'],
-            'FBA Fees': d['FBA Fees'],
-            'Fees Breakdown': d['Fees Breakdown'],
-            'Product id': d['Product id'],
-            'UPC':d.UPC || 'UPC'+d['Input EAN'],
-            'Fulfillment Shipping':getproducttype(d.Title),
-            'Available Quantity': d['Available Quantity'],
-            'Product name': d['Product name'],
-            'Product Currency':d['Product Currency'],
-            'Product price': d['Product price'],
-            'Category': d['Category'],
-            'Soldby':d['Soldby'],
-            'Size':d['Size'],
-            'Color':d['Color'],
-            'isCheked':d.isChecked,
-            SKU:d.SKU || generatesku(d['UPC'],d.Color,d.Size),
-            'Any other variations': d['Any other variations'],
+                'Input EAN': d['Input EAN'],
+                'ASIN': d.ASIN,
+                'Amazon link': d['Amazon link'] || `https://www.amazon.com/dp/${d.ASIN}`,
+                'Belk link': d['Belk link'],
+                'EAN List': d['EAN List'],
+                'MPN': d.MPN,
+                'ISBN': d.ISBN,
+                'Title': d.Title,
+                'Brand': d.Brand,
+                'Dimensions (in)': d['Dimensions (in)'],
+                'Weight (lb)': d['Weight (lb)'],
+                'Image link': d['Image link'],
+                'Lowest Price (USD)': d['Lowest Price (USD)'],
+                'Number of Sellers': d['Number of Sellers'],
+                'BSR': d.BSR,
+                'Product Category': d['Product Category'],
+                'Buy Box Price (USD)': d['Buy Box Price (USD)'],
+                'FBA Fees': d['FBA Fees'],
+                'Fees Breakdown': d['Fees Breakdown'],
+                'Product id': d['Product id'],
+                'UPC': d.UPC || 'UPC' + d['Input EAN'],
+                'Fulfillment Shipping': getproducttype(d.Title),
+                'Available Quantity': d['Available Quantity'],
+                'Product name': d['Product name'],
+                'Product Currency': d['Product Currency'],
+                'Product price': d['Product price'],
+                'Category': d['Category'],
+                'Soldby': d['Soldby'],
+                'Size': d['Size'],
+                'Color': d['Color'],
+                'isCheked': d.isChecked,
+                SKU: d.SKU || generatesku(d['UPC'], d.Color, d.Size),
+                'Any other variations': d['Any other variations'],
             };
-        });        
-        console.log(jsondata[0])
-       await FinalProduct.insertMany(jsondata)
+        });
+        await FinalProduct.insertMany(jsondata)
 
         res.status(200).send("File uploaded successfully")
     } catch (err) {
@@ -436,7 +334,7 @@ exports.uploadforcheck = async (req, res) => {
 
 exports.uploadinvdata = async (req, res) => {
     let backupdata = await AutoFetchData.find();
-    if(backupdata.length>0){
+    if (backupdata.length > 0) {
         const backup = new Backup({ data: backupdata });
         await backup.save();
     }
@@ -455,12 +353,9 @@ exports.uploadinvdata = async (req, res) => {
 
     // Convert the sheet to JSON
     const data1 = xlsx.utils.sheet_to_json(sheet);
-    console.log(data1.length);
     const data = data1.filter((d) => d['ASIN'] !== undefined && d['Input UPC'] !== undefined);
-    console.log(data.length)
     const modifiedurldata = data.map((d) => ({ ...d, 'Product link': d['Product link'] }))
     if (modifiedurldata.length === 0) {
-        console.log("no data")
         return res.status(400).json({ msg: 'No valid data to process' });
     }
     InvProduct.insertMany(modifiedurldata)
@@ -472,9 +367,9 @@ exports.uploadinvdata = async (req, res) => {
             if (uniqueUrls.length > 0) {
                 let urls = new InvUrl1({ url: uniqueUrls });
                 await urls.save();
-                res.status(200).json({ msg: 'Data successfully uploaded' });
+                res.status(200).json({status:true, msg: 'Data successfully uploaded' });
             } else {
-                res.status(200).json({ msg: 'No unique URLs to process' });
+                res.status(200).json({ status:false, msg: 'No unique URLs to process' });
             }
         })
         .catch(err => {
@@ -483,7 +378,6 @@ exports.uploadinvdata = async (req, res) => {
         });
 };
 
-// -------------upload direct source file for belk----------
 exports.uploadinvdata2 = async (req, res) => {
     let backupdata = await AutoFetchData.find();
     const backup = new Backup({ data: backupdata });
@@ -515,7 +409,6 @@ exports.uploadinvdata2 = async (req, res) => {
         'Shipping Template': d['Shipping template used on AZ']
     }))
     if (modifiedurldata.length === 0) {
-        console.log("no data")
         return res.status(400).json({ msg: 'No valid data to process' });
     }
     InvProduct.insertMany(modifiedurldata)
@@ -527,9 +420,9 @@ exports.uploadinvdata2 = async (req, res) => {
             if (uniqueUrls.length > 0) {
                 let urls = new InvUrl1({ url: uniqueUrls });
                 await urls.save();
-                res.status(200).json({ msg: 'Data successfully uploaded' });
+                res.status(200).json({status:true, msg: 'Data successfully uploaded' });
             } else {
-                res.status(200).json({ msg: 'No unique URLs to process' });
+                res.status(200).json({status:false, msg: 'No unique URLs to process' });
             }
         })
         .catch(err => {
@@ -538,7 +431,32 @@ exports.uploadinvdata2 = async (req, res) => {
         });
 };
 
-// -------------upload direct source file for boscovs----------
+// ---------download final product list for check---
+exports.deletedata = async (req, res) => {
+    try {
+        let resp = await FinalProduct.deleteMany()
+        res.status(200).json({ status: true })
+    } catch (err) {
+        console.log(err);
+        res.stauts(500).json({ status: false })
+    }
+}
+
+// ----------download row product list fetch from url----
+exports.downloadProductExcel = async (req, res) => {
+    try {
+        let productlist = await Product.find();
+        if (productlist.length > 0) {
+            res.status(200).json({ status: true, data: productlist })
+        } else {
+            res.status(404).json({ status: true, msg: "No data found" })
+        }
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ status: false, msg: err })
+    }
+}
+
 exports.uploadinvdata3 = async (req, res) => {
     let backupdata = await AutoFetchData.find();
     const backup = new Backup({ data: backupdata });
@@ -582,7 +500,7 @@ exports.uploadinvdata3 = async (req, res) => {
             if (uniqueUrls.length > 0) {
                 let urls = new InvUrl1({ url: uniqueUrls });
                 await urls.save();
-                res.status(200).json({ msg: 'Data successfully uploaded' });
+                res.status(200).json({status:true, msg: 'Data successfully uploaded' });
             } else {
                 res.status(200).json({ msg: 'No unique URLs to process' });
             }
@@ -592,30 +510,3 @@ exports.uploadinvdata3 = async (req, res) => {
             res.status(500).json({ msg: 'Error saving data to MongoDB' });
         });
 };
-
-// ---------download final product list for check---
-exports.deletedata= async(req,res)=>{
-    try{
-         let resp= await FinalProduct.deleteMany()
-          res.status(200).json({status:true})
-    }catch(err){
-        console.log(err);
-        res.stauts(500).json({status:false})
-    }
-}
-
-// ----------download row product list fetch from url----
-exports.downloadProductExcel=async(req,res)=>{
-    try{
-    let productlist= await Product.find();
-    console.log(productlist.length)
-    if(productlist.length>0){
-        res.status(200).json({status:true, data:productlist})
-    }else{
-        res.status(404).json({status:true,msg:"No data found"})
-    }
-    }catch(err){
-        console.log(err);
-        res.status(500).json({status:false, msg:err})
-    }
-}
