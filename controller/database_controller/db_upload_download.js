@@ -106,7 +106,7 @@ exports.downloadInvSheet = async (req, res) => {
         let filteredPrev = [];
         for (let prev of prevoos) {
             let autoFetchData = await AutoFetchData.findOne({ 'Input UPC': prev['Input UPC'] });
-            if (autoFetchData && autoFetchData['Current Quantity'] == 0) {
+            if (autoFetchData && autoFetchData['Current Quantity'] > 0) {
                 filteredPrev.push(prev);
             }
         }
@@ -122,7 +122,11 @@ exports.downloadInvSheet = async (req, res) => {
                 exclude.push(o);
             }
         }
-        await Exclude.insertMany(exclude)
+         let newd = exclude.map(obj => {
+    delete obj._id;
+    return obj;
+});
+        await Exclude.insertMany(newd)
         // -------------- save new out of stock data-----
         const data = await AutoFetchData.find();
         let outofstock = data.filter((d) => d['Current Quantity'] ==0);
