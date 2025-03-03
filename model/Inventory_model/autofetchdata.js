@@ -19,7 +19,7 @@ const autofetchdataSchema = new mongoose.Schema({
     'Min Profit': String,
     'Current Price':Number,
     'Coupon Offer Price': Number,
-    'Current Quantity':Number,
+    'Current Quantity':String,
     'PriceRange':Array
 
 });
