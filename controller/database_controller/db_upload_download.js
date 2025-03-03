@@ -133,11 +133,11 @@ exports.downloadInvSheet = async (req, res) => {
                 newproduct.push(o);
             }
         }
-        data = newproduct.map(obj => {
+       let newdata = newproduct.map(obj => {
     delete obj._id;
     return obj;
 });
-        await Outofstock.insertMany(data)
+        await Outofstock.insertMany(newdata)
         var jsondata = data.map((item) => {
             return {
                 'Input UPC': item['Input UPC'],
