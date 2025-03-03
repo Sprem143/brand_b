@@ -125,7 +125,7 @@ exports.downloadInvSheet = async (req, res) => {
         await Exclude.insertMany(exclude)
         // -------------- save new out of stock data-----
         const data = await AutoFetchData.find();
-        let outofstock = data.filter((d) => d['Current Quantity'] < 3);
+        let outofstock = data.filter((d) => d['Current Quantity'] ==0);
         let newproduct = []
         for (let o of outofstock) {
             let product = await Outofstock.findOne({ ASIN: o.ASIN });
@@ -133,7 +133,11 @@ exports.downloadInvSheet = async (req, res) => {
                 newproduct.push(o);
             }
         }
-        await Outofstock.insertMany(newproduct)
+        data = newproduct.map(obj => {
+    delete obj._id;
+    return obj;
+});
+        await Outofstock.insertMany(data)
         var jsondata = data.map((item) => {
             return {
                 'Input UPC': item['Input UPC'],
