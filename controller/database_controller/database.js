@@ -5,6 +5,9 @@ const Backup = require('../../model/Inventory_model/backup');
 const Product = require('../../model/Brand_model/products');
 const autofetchdata = require('../../model/Inventory_model/autofetchdata');
 const BrandPage = require('../../model/Brand_model/brandpage');
+const FinalProduct = require('../../model/Brand_model/finalProduct')
+const Exclude= require('../../model/Inventory_model/Exclude');
+const invProduct = require('../../model/Inventory_model/invProduct');
 
 // -----------send url list of product to home page------
 exports.sendproductsurl = async (req, res) => {
@@ -25,7 +28,7 @@ exports.totalproducts = async (req, res) => {
     try {
         let products = await Product.countDocuments();
         let urls = await BrandUrl.find();
-        var num2=[];
+        var num2 = [];
         if (urls.length > 0) {
             num2 = urls[0].producturl;
         }
@@ -52,10 +55,10 @@ exports.deletebackup = async (req, res) => {
 exports.getinvlinks = async (req, res) => {
     try {
         let result1 = await InvUrl1.find();
-        let data= await AutoFetchData.find({
-            $expr:{$gt:[{$size : "$PriceRange"},1]}
+        let data = await AutoFetchData.find({
+            $expr: { $gt: [{ $size: "$PriceRange" }, 1] }
         })
-        res.status(200).json({url:result1[0],data:data})
+        res.status(200).json({ url: result1[0], data: data })
     } catch (err) {
         console.log(err);
     }
@@ -81,62 +84,112 @@ exports.getupdatedproduct = async (req, res) => {
         console.log(err)
     }
 }
-// -------------download partial list of upc on brand scrapping page
-// exports.downloadpartiallist = async (req, res) => {
-//     try {
-//         let result = await Varientupc.find({}, { upc: 1, _id: 0 });
-//         let upclist = [];
-//         result.forEach((r) => {
-//             upclist.push(r.upc[Math.floor(r.upc.length / 2)])
-//         })
-//         res.status(200).json({ status: true, upc: upclist })
-//     } catch (err) {
-//         console.log(err)
-//     }
-// }
+
 
 // ------------checkremainingdata----------------
-exports.checkremainingdata=async(req,res)=>{
-    try{
+exports.checkremainingdata = async (req, res) => {
+    try {
         let url = await InvUrl1.find();
-        res.status(200).json({status:true, url:url[0]})
-    }catch(err){
+        res.status(200).json({ status: true, url: url[0] })
+    } catch (err) {
         console.log(err)
-        res.staus(500).json({status:false,msg:err})
+        res.staus(500).json({ status: false, msg: err })
     }
 }
 
-exports.changeprice=async(req,res)=>{
-    try{
-    const {id,price}=req.body
-  let products= await autofetchdata.find({_id:id});
-  let url=products[0]['Product link']
-  let color= products[0]['color'] || 'abcd'
-let allvarition= await autofetchdata.find({'Product link':url, color:color})
-console.log(allvarition)
+exports.changeprice = async (req, res) => {
+    try {
+        const { id, price } = req.body
+        let products = await autofetchdata.find({ _id: id });
+        let url = products[0]['Product link']
+        let color = products[0]['color'] || 'abcd'
+        let allvarition = await autofetchdata.find({ 'Product link': url, color: color })
+        console.log(allvarition)
 
-     allvarition.forEach(async(p)=>{
-         await AutoFetchData.findByIdAndUpdate(
-                {_id:p._id},
-                {$set:{['Current Price']: price, PriceRange: [] }},
-                {new:true}
+        allvarition.forEach(async (p) => {
+            await AutoFetchData.findByIdAndUpdate(
+                { _id: p._id },
+                { $set: { ['Current Price']: price, PriceRange: [] } },
+                { new: true }
             )
-     })
+        })
 
-     let updatedproduct= await autofetchdata.find({
-        $expr:{$gt:[{$size : "$PriceRange"},1]}
-    })
- res.status(200).json({status:true, num:allvarition.length, data:updatedproduct})
-    }catch(err){
+        let updatedproduct = await autofetchdata.find({
+            $expr: { $gt: [{ $size: "$PriceRange" }, 1] }
+        })
+        res.status(200).json({ status: true, num: allvarition.length, data: updatedproduct })
+    } catch (err) {
         console.log
     }
 }
 
-exports.cleardata=async(req,res)=>{
+exports.cleardata = async (req, res) => {
+    try {
+        await BrandUrl.deleteMany();
+        await BrandPage.deleteMany();
+        await Product.deleteMany()
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ status: false, msg: err })
+    }
+}
+
+exports.deletemanyproduct = async (req, res) => {
+    try {
+        let asins = req.body.arr
+        if (!Array.isArray(asins) || asins.length === 0) {
+            return res.status(400).json({ message: "Invalid or empty ASIN array" });
+        }
+        let resp = await FinalProduct.deleteMany({ ASIN: { $in: asins } })
+        console.log(resp)
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ status: false, msg: err })
+    }
+}
+
+const countday=(date)=>{
+    let [d1,m1,y1]= date.split('/').map(Number)
+    let [d2,m2,y2]= new Date().toLocaleDateString("en-GB").split('/').map(Number)
+    
+   let date1 = new Date(y1,m1-1,d1)
+   let date2 = new Date(y2,m2-1,d2)
+
+   let diff= Math.abs(date2-date1)
+   return diff/(1000*3600*24)
+}
+exports.removeoutofstock=async(req,res)=>{
     try{
-      await BrandUrl.deleteMany();
-      await BrandPage.deleteMany();
-      await Product.deleteMany()
+     let excluded= await Exclude.find();
+     let count=0
+      for (let e of excluded){
+        let product= await invProduct.findOneAndDelete({'Input UPC': e['Input UPC']});
+         if(product){
+            let saveproduct= {
+                'Product link': product['Product link'],
+                'Current Quantity': `Out of stock from ${countday(e.Date)} days`,
+                'Product price': 0,
+                'Current Price': product['Product price'],
+                'PriceRange': [],
+                'Image link': '',
+                'Input UPC': product['Input UPC'],
+                'Fulfillment': product['Fulfillment'],
+                'Amazon Fees%': product['Amazon Fees%'],
+                'Amazon link': '',
+                'Shipping Template': product['Shipping Template'],
+                'Min Profit': '',
+                ASIN: product.ASIN,
+                SKU: product.SKU,
+            }
+            let newpr= new AutoFetchData(saveproduct)
+            await newpr.save()
+            count+=1
+         }
+
+       
+      }
+
+      res.status(500).json({status:true, count:count})
     }catch(err){
         console.log(err);
         res.status(500).json({status:false, msg:err})
