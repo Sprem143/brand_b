@@ -141,7 +141,7 @@ exports.deletemanyproduct = async (req, res) => {
             return res.status(400).json({ message: "Invalid or empty ASIN array" });
         }
         let resp = await FinalProduct.deleteMany({ ASIN: { $in: asins } })
-        console.log(resp)
+        res.status(200).json({status:true, count:resp.deletedCount})
     } catch (err) {
         console.log(err);
         res.status(500).json({ status: false, msg: err })
