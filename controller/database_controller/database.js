@@ -188,7 +188,6 @@ exports.removeoutofstock = async (req, res) => {
 
 
         }
-
         res.status(500).json({ status: true, count: count })
     } catch (err) {
         console.log(err);
