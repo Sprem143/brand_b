@@ -6,7 +6,7 @@ const Product = require('../../model/Brand_model/products');
 const autofetchdata = require('../../model/Inventory_model/autofetchdata');
 const BrandPage = require('../../model/Brand_model/brandpage');
 const FinalProduct = require('../../model/Brand_model/finalProduct')
-const Exclude= require('../../model/Inventory_model/Exclude');
+const Exclude = require('../../model/Inventory_model/Exclude');
 const invProduct = require('../../model/Inventory_model/invProduct');
 
 // -----------send url list of product to home page------
@@ -141,57 +141,71 @@ exports.deletemanyproduct = async (req, res) => {
             return res.status(400).json({ message: "Invalid or empty ASIN array" });
         }
         let resp = await FinalProduct.deleteMany({ ASIN: { $in: asins } })
-        res.status(200).json({status:true, count:resp.deletedCount})
+        res.status(200).json({ status: true, count: resp.deletedCount })
     } catch (err) {
         console.log(err);
         res.status(500).json({ status: false, msg: err })
     }
 }
 
-const countday=(date)=>{
-    let [d1,m1,y1]= date.split('/').map(Number)
-    let [d2,m2,y2]= new Date().toLocaleDateString("en-GB").split('/').map(Number)
-    
-   let date1 = new Date(y1,m1-1,d1)
-   let date2 = new Date(y2,m2-1,d2)
+const countday = (date) => {
+    let [d1, m1, y1] = date.split('/').map(Number)
+    let [d2, m2, y2] = new Date().toLocaleDateString("en-GB").split('/').map(Number)
 
-   let diff= Math.abs(date2-date1)
-   return diff/(1000*3600*24)
+    let date1 = new Date(y1, m1 - 1, d1)
+    let date2 = new Date(y2, m2 - 1, d2)
+
+    let diff = Math.abs(date2 - date1)
+    return diff / (1000 * 3600 * 24)
 }
-exports.removeoutofstock=async(req,res)=>{
-    try{
-     let excluded= await Exclude.find();
-     let count=0
-      for (let e of excluded){
-        let product= await invProduct.findOneAndDelete({'Input UPC': e['Input UPC']});
-         if(product){
-            let saveproduct= {
-                'Product link': product['Product link'],
-                'Current Quantity': `Out of stock from ${countday(e.Date)} days`,
-                'Product price': 0,
-                'Current Price': product['Product price'],
-                'PriceRange': [],
-                'Image link': '',
-                'Input UPC': product['Input UPC'],
-                'Fulfillment': product['Fulfillment'],
-                'Amazon Fees%': product['Amazon Fees%'],
-                'Amazon link': '',
-                'Shipping Template': product['Shipping Template'],
-                'Min Profit': '',
-                ASIN: product.ASIN,
-                SKU: product.SKU,
+exports.removeoutofstock = async (req, res) => {
+    try {
+        let excluded = await Exclude.find();
+        let count = 0
+        for (let e of excluded) {
+            let product = await invProduct.findOneAndDelete({ 'Input UPC': e['Input UPC'] });
+            if (product) {
+                let saveproduct = {
+                    'Product link': product['Product link'],
+                    'Current Quantity': `Out of stock from ${countday(e.Date)} days`,
+                    'Product price': 0,
+                    'Current Price': product['Product price'],
+                    'PriceRange': [],
+                    'Image link': '',
+                    'Input UPC': product['Input UPC'],
+                    'Fulfillment': product['Fulfillment'],
+                    'Amazon Fees%': product['Amazon Fees%'],
+                    'Amazon link': '',
+                    'Shipping Template': product['Shipping Template'],
+                    'Min Profit': '',
+                    ASIN: product.ASIN,
+                    SKU: product.SKU,
+                }
+                let newpr = new AutoFetchData(saveproduct)
+                await newpr.save()
+                count += 1
             }
-            let newpr= new AutoFetchData(saveproduct)
-            await newpr.save()
-            count+=1
-         }
 
-       
-      }
 
-      res.status(500).json({status:true, count:count})
-    }catch(err){
+        }
+
+        res.status(500).json({ status: true, count: count })
+    } catch (err) {
         console.log(err);
-        res.status(500).json({status:false, msg:err})
+        res.status(500).json({ status: false, msg: err })
+    }
+}
+
+exports.setbulkshippingcost = async (req, res) => {
+    try {
+        const { idarr, shippingcost } = req.body;
+        let resp = await FinalProduct.updateMany(
+            { ASIN: { $in: idarr } },
+            { $set: {'Fulfillment Shipping': shippingcost} }
+        )
+       res.status(200).json({status:true, count:resp.modifiedCount})
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ status: false, msg: err })
     }
 }
