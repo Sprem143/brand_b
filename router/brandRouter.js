@@ -5,7 +5,7 @@ const upload = multer({ dest: 'uploads/' });
 
 const { autofetchdata } = require('../controller/Inventory_controller/inventory');
 const { fetchbrand, getproduct,deleteproduct,editsku,setchecked,removeexistingurl,editshippingcost} = require('../controller/BrandScrap/brandController');
-const {deletebackup ,getupdatedproduct, sendproductsurl, getinvlinks, getinvproduct,totalproducts,cleardata,deletemanyproduct } = require('../controller/database_controller/database');
+const {deletebackup ,getupdatedproduct, sendproductsurl, getinvlinks, getinvproduct,totalproducts,cleardata,deletemanyproduct,setbulkshippingcost } = require('../controller/database_controller/database');
 const { downloadInvSheet,downloadfinalSheet, uploadinvdata,uploadinvdata2, uploadinvdata3, downloadExcel, uploaddata,uploadforcheck,deletedata,downloadProductExcel} = require('../controller/database_controller/db_upload_download')
 const {getproduct1}=require('../controller/BrandScrap/thread1')
 const {getproduct2}=require('../controller/BrandScrap/thread2')
@@ -42,6 +42,7 @@ router.get('/totalproducts', totalproducts);
 router.delete('/deletebackup', deletebackup);
 router.delete('/deleteproduct', deleteproduct);
 router.delete('/deletemanyproduct', deletemanyproduct);
+router.put('/setbulkshippingcost',setbulkshippingcost)
 // router.get('/exp',exp)
 router.put('/editsku',editsku)
 router.put('/setchecked',setchecked)
