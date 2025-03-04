@@ -343,7 +343,7 @@ exports.uploadforcheck = async (req, res) => {
 exports.uploadinvdata = async (req, res) => {
     let backupdata = await AutoFetchData.find();
     if (backupdata.length > 0) {
-        const backup = new Backup({ data: backupdata });
+        const backup = new Backup({ data: backupdata, length: backupdata.length });
         await backup.save();
     }
     await InvProduct.deleteMany();
@@ -388,8 +388,10 @@ exports.uploadinvdata = async (req, res) => {
 
 exports.uploadinvdata2 = async (req, res) => {
     let backupdata = await AutoFetchData.find();
-    const backup = new Backup({ data: backupdata });
-    await backup.save();
+    if(backupdata.length>0){
+        const backup = new Backup({ data: backupdata, length: backupdata.length });
+        await backup.save();
+    }
     await InvProduct.deleteMany();
     await InvUrl1.deleteMany();
     await AutoFetchData.deleteMany();
@@ -467,8 +469,10 @@ exports.downloadProductExcel = async (req, res) => {
 
 exports.uploadinvdata3 = async (req, res) => {
     let backupdata = await AutoFetchData.find();
-    const backup = new Backup({ data: backupdata });
-    await backup.save();
+    if(backupdata.length>0){
+        const backup = new Backup({ data: backupdata, length: backupdata.length });
+        await backup.save();
+    }
     await InvProduct.deleteMany();
     await InvUrl1.deleteMany();
     await AutoFetchData.deleteMany();
