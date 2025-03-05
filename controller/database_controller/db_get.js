@@ -1,6 +1,7 @@
 const InvProduct = require('../../model/Inventory_model/invProduct');
 const AutoFetchData = require('../../model/Inventory_model/autofetchdata')
 const Backup = require('../../model/Inventory_model/backup');
+const Outofstock = require('../../model/Inventory_model/outofstock')
 
 
 exports.getrowdata = async (req, res) => {
@@ -50,6 +51,18 @@ const {name}= req.body;
 let data= await Backup.findOne({name:name})
 res.status(200).json({data:data.data})
 
+    }catch(err){
+        console.log(err);
+        res.status(500).json({status:false, msg:err})
+    }
+}
+
+exports.getoutofstock = async(req,res)=>{
+    try{
+   let data = await Outofstock.find();
+   console.log(data.length);
+   console.log(data[0])
+   res.status(200).json({status:true, data:data})
     }catch(err){
         console.log(err);
         res.status(500).json({status:false, msg:err})
