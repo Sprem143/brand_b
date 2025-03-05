@@ -8,7 +8,8 @@ const urlSchema = new mongoose.Schema({
     data: {
         type: [Object],
         required: true,  
-    }
+    },
+    length:Number
 }, {
     timestamps: true,  
 });
