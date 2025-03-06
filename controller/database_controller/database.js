@@ -309,3 +309,14 @@ exports.savemasterdata = async (req, res) => {
         res.status(500).json({ status: false, msg: err })
     }
 }
+
+exports.cleardata= async(req,res)=>{
+    try{
+           await Rcube.deleteMany()
+           await Bijak.deleteMany()
+           await Om.deleteMany()
+           await Zenith.deleteMany()
+    }catch(err){
+        console.log(err)
+    }
+}
