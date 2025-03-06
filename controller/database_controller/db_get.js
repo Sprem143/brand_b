@@ -2,6 +2,10 @@ const InvProduct = require('../../model/Inventory_model/invProduct');
 const AutoFetchData = require('../../model/Inventory_model/autofetchdata')
 const Backup = require('../../model/Inventory_model/backup');
 const Outofstock = require('../../model/Inventory_model/outofstock')
+const Om = require('../../model/Masterdata/om');
+const Bijak = require('../../model/Masterdata/bijak');
+const Rcube = require('../../model/Masterdata/rcube')
+const Zenith = require('../../model/Masterdata/zenith')
 
 
 exports.getrowdata = async (req, res) => {
@@ -60,9 +64,21 @@ res.status(200).json({data:data.data})
 exports.getoutofstock = async(req,res)=>{
     try{
    let data = await Outofstock.find();
-   console.log(data.length);
-   console.log(data[0])
    res.status(200).json({status:true, data:data})
+    }catch(err){
+        console.log(err);
+        res.status(500).json({status:false, msg:err})
+    }
+}
+
+exports.mastersheet = async(req,res)=>{
+    try{
+      const rc = await Rcube.find();
+      const zl = await Zenith.find();
+      const om = await Om.find();
+      const bj = await Bijak.find();
+
+      res.status(200).json({status:true, rc:rc, zl:zl,om:om, bj:bj})
     }catch(err){
         console.log(err);
         res.status(500).json({status:false, msg:err})
