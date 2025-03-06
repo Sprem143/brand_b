@@ -8,6 +8,11 @@ const BrandPage = require('../../model/Brand_model/brandpage');
 const FinalProduct = require('../../model/Brand_model/finalProduct')
 const Exclude = require('../../model/Inventory_model/Exclude');
 const invProduct = require('../../model/Inventory_model/invProduct');
+const Order = require('../../model/Inventory_model/order');
+const Om = require('../../model/Masterdata/om');
+const Bijak = require('../../model/Masterdata/bijak');
+const Rcube = require('../../model/Masterdata/rcube')
+const Zenith = require('../../model/Masterdata/zenith')
 
 // -----------send url list of product to home page------
 exports.sendproductsurl = async (req, res) => {
@@ -85,7 +90,6 @@ exports.getupdatedproduct = async (req, res) => {
     }
 }
 
-
 // ------------checkremainingdata----------------
 exports.checkremainingdata = async (req, res) => {
     try {
@@ -104,8 +108,6 @@ exports.changeprice = async (req, res) => {
         let url = products[0]['Product link']
         let color = products[0]['color'] || 'abcd'
         let allvarition = await autofetchdata.find({ 'Product link': url, color: color })
-        console.log(allvarition)
-
         allvarition.forEach(async (p) => {
             await AutoFetchData.findByIdAndUpdate(
                 { _id: p._id },
@@ -113,13 +115,13 @@ exports.changeprice = async (req, res) => {
                 { new: true }
             )
         })
-
         let updatedproduct = await autofetchdata.find({
             $expr: { $gt: [{ $size: "$PriceRange" }, 1] }
         })
         res.status(200).json({ status: true, num: allvarition.length, data: updatedproduct })
     } catch (err) {
-        console.log
+        console.log(err);
+        res.status(500).json({ status: false, msg: err })
     }
 }
 
@@ -188,6 +190,7 @@ exports.removeoutofstock = async (req, res) => {
 
 
         }
+
         res.status(500).json({ status: true, count: count })
     } catch (err) {
         console.log(err);
@@ -200,9 +203,107 @@ exports.setbulkshippingcost = async (req, res) => {
         const { idarr, shippingcost } = req.body;
         let resp = await FinalProduct.updateMany(
             { ASIN: { $in: idarr } },
-            { $set: {'Fulfillment Shipping': shippingcost} }
+            { $set: { 'Fulfillment Shipping': shippingcost } }
         )
-       res.status(200).json({status:true, count:resp.modifiedCount})
+        res.status(200).json({ status: true, count: resp.modifiedCount })
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ status: false, msg: err })
+    }
+}
+
+exports.saveorder = async (req, res) => {
+    try {
+        let { orders } = req.body;
+        if (orders.length < 1) {
+            return res.status(404).json({ status: false, msg: 'No order found' })
+        }
+        let orderlist = []
+        for (let o of orders) {
+            let ord = await Order.findOne({ 'AZ id': o['AZ id'] })
+            if (!ord.SKU) {
+                orderlist.push(o)
+            }
+        }
+        let resp = await Order.insertMany(orderlist);
+        res.status(200).json({ status: true })
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ status: false, msg: err })
+    }
+}
+
+// -----------master data saving ----------------
+function fetchupc(sku){
+    let[a,b,c]= sku.split('-')
+}
+exports.savemasterdata = async (req, res) => {
+    try {
+        let products = await invProduct.find();
+        let size = 0;
+        if (products.length > 0 && products[0]['SKU'].includes('RC')) {
+            let productlist = []
+            let data = await Rcube.find();
+            for (let p of products) {
+                let find = 0;
+                for (let d of data) {
+                    if (d.ASIN == p.ASIN) {
+                        find = 1;
+                    }
+                }
+              find==0?productlist.push({ASIN : p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2]}): null
+            }
+            size = productlist.length
+            await Rcube.insertMany(productlist)
+
+        } else if (products.length > 0 && products[0]['SKU'].includes('ZL')) {
+            let productlist = []
+            let data = await Zenith.find();
+            for (let p of products) {
+                let find = 0;
+                for (let d of data) {
+                    if (d.ASIN == p.ASIN) {
+                        find = 1;
+                    }
+                }
+              find==0?productlist.push({ASIN : p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2]}): null
+            }
+            size = productlist.length
+            await Zenith.insertMany(productlist)
+
+        } else if (products.length > 0 && products[0]['SKU'].includes('BJ')) {
+            let productlist = []
+            let data = await Bijak.find();
+            for (let p of products) {
+                let find = 0;
+                for (let d of data) {
+                    if (d.ASIN == p.ASIN) {
+                        find = 1;
+                    }
+                }
+              find==0?productlist.push({ASIN : p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2]}): null
+            }
+            size = productlist.length
+            await Bijak.insertMany(productlist)
+
+        } else if (products.length > 0 && products[0]['SKU'].includes('OM')) {
+            let productlist = []
+            let data = await Om.find();
+            for (let p of products) {
+                let find = 0;
+                for (let d of data) {
+                    if (d.ASIN == p.ASIN) {
+                        find = 1;
+                    }
+                }
+              find==0?productlist.push({ASIN : p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2]}): null
+            }
+            size = productlist.length
+            await Om.insertMany(productlist)
+        }
+        console.log('completed')
+        console.log(size)
+        res.status(200).json({ status: true, size: size })
     } catch (err) {
         console.log(err);
         res.status(500).json({ status: false, msg: err })
