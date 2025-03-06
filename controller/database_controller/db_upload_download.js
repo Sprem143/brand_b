@@ -10,6 +10,10 @@ const Exclude = require('../../model/Inventory_model/Exclude')
 const xlsx = require('xlsx')
 const fs = require('fs');
 const path = require('path');
+const Om = require('../../model/Masterdata/om');
+const Bijak = require('../../model/Masterdata/bijak');
+const Rcube = require('../../model/Masterdata/rcube')
+const Zenith = require('../../model/Masterdata/zenith')
 
 const generatesku = (upc, color, size) => {
     if (color && size) {
@@ -456,8 +460,27 @@ exports.deletedata = async (req, res) => {
 exports.downloadProductExcel = async (req, res) => {
     try {
         let productlist = await Product.find();
+        let rc = await Rcube.find({}, {UPC:1, _id:0})
+         rc = rc.map((r)=>r.UPC)
+
+        let zl = await Zenith.find({}, {UPC:1, _id:0})
+          zl = zl.map((r)=>r.UPC)
+       
+        let om = await Om.find({}, {UPC:1, _id:0})
+        om = om.map((r)=>r.UPC)
+
+        let bj = await Bijak.find({}, {UPC:1, _id:0})
+        bj = bj.map((r)=>r.UPC)
+       let count = 0
+         for (let p of productlist){
+            if(rc.includes(p.upc) || zl.includes(p.upc) || om.includes(p.upc) || bj.includes(p.upc)) {
+                await Product.findOneAndDelete({upc: p.upc});
+                count+=1;
+            }
+         }
+   const products = await Product.find();
         if (productlist.length > 0) {
-            res.status(200).json({ status: true, data: productlist })
+            res.status(200).json({ status: true, data: products, count: count })
         } else {
             res.status(404).json({ status: true, msg: "No data found" })
         }
