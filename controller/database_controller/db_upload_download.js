@@ -94,7 +94,7 @@ function getDateDifference(date1) {
     const [d1, m1, y1] = date1.split("/").map(Number);
     const [d2, m2, y2] = new Date().toLocaleDateString("en-GB").split("/").map(Number);
 
-    const firstDate = new Date(y1, m1 - 1, d1); 
+    const firstDate = new Date(y1, m1 - 1, d1);
     const secondDate = new Date(y2, m2 - 1, d2);
 
     const diffTime = Math.abs(secondDate - firstDate);
@@ -106,34 +106,36 @@ function getDateDifference(date1) {
 
 exports.downloadInvSheet = async (req, res) => {
     try {
+
+        console.log('Download local')
         const prevoos = await Outofstock.find();
         let filteredPrev = [];
-        for (let prev of prevoos) {
-            let autoFetchData = await AutoFetchData.findOne({ 'Input UPC': prev['Input UPC'] });
-            if (autoFetchData && autoFetchData['Current Quantity'] > 0) {
-                filteredPrev.push(prev);
-            }
-        }
-        let asinlist = filteredPrev.map((f) => f.ASIN)
-        await Outofstock.deleteMany({ ASIN: { $in: asinlist } });
+        // for (let prev of prevoos) {
+        //     let autoFetchData = await AutoFetchData.findOne({ 'Input UPC': prev['Input UPC'] });
+        //     if (autoFetchData && autoFetchData['Current Quantity'] > 0) {
+        //         filteredPrev.push(prev);
+        //     }
+        // }
+        // let asinlist = filteredPrev.map((f) => f.ASIN)
+        // await Outofstock.deleteMany({ ASIN: { $in: asinlist } });
 
-        // ----------remove product which is out of stock from 1 month-------
-        let excludeproduct = prevoos.filter((p) => getDateDifference(p.Date))
-        let exclude = []
-        for (let o of excludeproduct) {
-            let product = await Exclude.findOne({ ASIN: o.ASIN });
-            if (!product) {
-                exclude.push(o);
-            }
-        }
-         let newd = exclude.map(obj => {
-    delete obj._id;
-    return obj;
-});
-        await Exclude.insertMany(newd)
+        // // ----------remove product which is out of stock from 1 month-------
+        // let excludeproduct = prevoos.filter((p) => getDateDifference(p.Date))
+        // let exclude = []
+        // for (let o of excludeproduct) {
+        //     let product = await Exclude.findOne({ ASIN: o.ASIN });
+        //     if (!product) {
+        //         exclude.push(o);
+        //     }
+        // }
+        // let newd = exclude.map(obj => {
+        //     delete obj._id;
+        //     return obj;
+        // });
+        // await Exclude.insertMany(newd)
         // -------------- save new out of stock data-----
         const data = await AutoFetchData.find();
-        let outofstock = data.filter((d) => d['Current Quantity'] ==0);
+        let outofstock = data.filter((d) => d['Current Quantity'] == 0);
         let newproduct = []
         for (let o of outofstock) {
             let product = await Outofstock.findOne({ ASIN: o.ASIN });
@@ -141,10 +143,10 @@ exports.downloadInvSheet = async (req, res) => {
                 newproduct.push(o);
             }
         }
-       let newdata = newproduct.map(obj => {
-    delete obj._id;
-    return obj;
-});
+        let newdata = newproduct.map(obj => {
+            delete obj._id;
+            return obj;
+        });
         await Outofstock.insertMany(newdata)
         var jsondata = data.map((item) => {
             return {
@@ -379,9 +381,9 @@ exports.uploadinvdata = async (req, res) => {
             if (uniqueUrls.length > 0) {
                 let urls = new InvUrl1({ url: uniqueUrls });
                 await urls.save();
-                res.status(200).json({status:true, msg: 'Data successfully uploaded' });
+                res.status(200).json({ status: true, msg: 'Data successfully uploaded' });
             } else {
-                res.status(200).json({ status:false, msg: 'No unique URLs to process' });
+                res.status(200).json({ status: false, msg: 'No unique URLs to process' });
             }
         })
         .catch(err => {
@@ -392,7 +394,7 @@ exports.uploadinvdata = async (req, res) => {
 
 exports.uploadinvdata2 = async (req, res) => {
     let backupdata = await AutoFetchData.find();
-    if(backupdata.length>0){
+    if (backupdata.length > 0) {
         const backup = new Backup({ data: backupdata, length: backupdata.length });
         await backup.save();
     }
@@ -434,9 +436,9 @@ exports.uploadinvdata2 = async (req, res) => {
             if (uniqueUrls.length > 0) {
                 let urls = new InvUrl1({ url: uniqueUrls });
                 await urls.save();
-                res.status(200).json({status:true, msg: 'Data successfully uploaded' });
+                res.status(200).json({ status: true, msg: 'Data successfully uploaded' });
             } else {
-                res.status(200).json({status:false, msg: 'No unique URLs to process' });
+                res.status(200).json({ status: false, msg: 'No unique URLs to process' });
             }
         })
         .catch(err => {
@@ -459,26 +461,27 @@ exports.deletedata = async (req, res) => {
 // ----------download row product list fetch from url----
 exports.downloadProductExcel = async (req, res) => {
     try {
+        console.log("LOcal download")
         let productlist = await Product.find();
-        let rc = await Rcube.find({}, {UPC:1, _id:0})
-         rc = rc.map((r)=>r.UPC)
+        let rc = await Rcube.find({}, { UPC: 1, _id: 0 })
+        rc = rc.map((r) => r.UPC)
 
-        let zl = await Zenith.find({}, {UPC:1, _id:0})
-          zl = zl.map((r)=>r.UPC)
-       
-        let om = await Om.find({}, {UPC:1, _id:0})
-        om = om.map((r)=>r.UPC)
+        let zl = await Zenith.find({}, { UPC: 1, _id: 0 })
+        zl = zl.map((r) => r.UPC)
 
-        let bj = await Bijak.find({}, {UPC:1, _id:0})
-        bj = bj.map((r)=>r.UPC)
-       let count = 0
-         for (let p of productlist){
-            if(rc.includes(p.upc) || zl.includes(p.upc) || om.includes(p.upc) || bj.includes(p.upc)) {
-                await Product.findOneAndDelete({upc: p.upc});
-                count+=1;
+        let om = await Om.find({}, { UPC: 1, _id: 0 })
+        om = om.map((r) => r.UPC)
+
+        let bj = await Bijak.find({}, { UPC: 1, _id: 0 })
+        bj = bj.map((r) => r.UPC)
+        let count = 0
+        for (let p of productlist) {
+            if (rc.includes(p.upc) || zl.includes(p.upc) || om.includes(p.upc) || bj.includes(p.upc)) {
+                await Product.findOneAndDelete({ upc: p.upc });
+                count += 1;
             }
-         }
-   const products = await Product.find();
+        }
+        const products = await Product.find();
         if (productlist.length > 0) {
             res.status(200).json({ status: true, data: products, count: count })
         } else {
@@ -492,8 +495,9 @@ exports.downloadProductExcel = async (req, res) => {
 
 exports.uploadinvdata3 = async (req, res) => {
     let backupdata = await AutoFetchData.find();
-    if(backupdata.length>0){
-        const backup = new Backup({ data: backupdata, length: backupdata.length });
+    if (backupdata.length > 0) {
+        let account = backupdata[0].SKU.includes('BJ')? 'Bijak' : backupdata[0].SKU.includes('RC')? 'Rcube': backupdata[0].SKU.includes('ZL')? 'Zenith' : backupdata[0].SKU.includes('OM')? 'Om' : null
+        const backup = new Backup({ data: backupdata, length: backupdata.length, account:account });
         await backup.save();
     }
     await InvProduct.deleteMany();
@@ -535,7 +539,7 @@ exports.uploadinvdata3 = async (req, res) => {
             if (uniqueUrls.length > 0) {
                 let urls = new InvUrl1({ url: uniqueUrls });
                 await urls.save();
-                res.status(200).json({status:true, msg: 'Data successfully uploaded' });
+                res.status(200).json({ status: true, msg: 'Data successfully uploaded' });
             } else {
                 res.status(200).json({ msg: 'No unique URLs to process' });
             }
