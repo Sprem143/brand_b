@@ -14,6 +14,7 @@ const Om = require('../../model/Masterdata/om');
 const Bijak = require('../../model/Masterdata/bijak');
 const Rcube = require('../../model/Masterdata/rcube')
 const Zenith = require('../../model/Masterdata/zenith')
+const {countDays} = require('../utils')
 
 const generatesku = (upc, color, size) => {
     if (color && size) {
@@ -106,49 +107,33 @@ function getDateDifference(date1) {
 
 exports.downloadInvSheet = async (req, res) => {
     try {
+        let prevoos = await Outofstock.find({}, {ASIN:1, _id: 0});
+        prevoos = prevoos.map(p=> p.ASIN)
+        const data = await AutoFetchData.find({ 'Current Quantity': { $gt: 0 }})
+        let updated = data.map(d=> d.ASIN)
+        
+        for( let p of prevoos){
+            if(updated.includes(p)){
+                await Outofstock.findOneAndDelete({ASIN: p})
+            }
+        }
 
-        console.log('Download local')
-        const prevoos = await Outofstock.find();
-        let filteredPrev = [];
-        for (let prev of prevoos) {
-            let autoFetchData = await AutoFetchData.findOne({ 'Input UPC': prev['Input UPC'] });
-            if (autoFetchData && autoFetchData['Current Quantity'] > 0) {
-                filteredPrev.push(prev);
-            }
-        }
-        let asinlist = filteredPrev.map((f) => f.ASIN)
-        await Outofstock.deleteMany({ ASIN: { $in: asinlist } });
-
-        // ----------remove product which is out of stock from 1 month-------
-        let excludeproduct = prevoos.filter((p) => getDateDifference(p.Date))
-        let exclude = []
-        for (let o of excludeproduct) {
-            let product = await Exclude.findOne({ ASIN: o.ASIN });
-            if (!product) {
-                exclude.push(o);
-            }
-        }
-        let newd = exclude.map(obj => {
-            delete obj._id;
-            return obj;
-        });
-        await Exclude.insertMany(newd)
-        // -------------- save new out of stock data-----
-        const data = await AutoFetchData.find();
-        let outofstock = data.filter((d) => d['Current Quantity'] == 0);
-        let newproduct = []
-        for (let o of outofstock) {
-            let product = await Outofstock.findOne({ ASIN: o.ASIN });
-            if (!product) {
-                newproduct.push(o);
-            }
-        }
-        let newdata = newproduct.map(obj => {
-            delete obj._id;
-            return obj;
-        });
-        await Outofstock.insertMany(newdata)
-        var jsondata = data.map((item) => {
+        // // ----------remove product which is out of stock from 1 month-------
+        // let excludeproduct = prevoos.filter((p) => countDays(p.Date))
+        // let exclude = []
+        // for (let o of excludeproduct) {
+        //     let product = await Exclude.findOne({ ASIN: o.ASIN });
+        //     if (!product) {
+        //         exclude.push(o);
+        //     }
+        // }
+        // let newd = exclude.map(obj => {
+        //     delete obj._id;
+        //     return obj;
+        // });
+        // await Exclude.insertMany(newd)
+        let updatedproduct = await AutoFetchData.find();
+        var jsondata = updatedproduct.map((item) => {
             return {
                 'Input UPC': item['Input UPC'],
                 ASIN: item['ASIN'],
@@ -166,11 +151,8 @@ exports.downloadInvSheet = async (req, res) => {
                 'Current Quantity': item['Current Quantity']
             }
         });
-        let udata = jsondata.filter((product, index, self) =>
-            index === self.findIndex(p => p['Input UPC'] === product['Input UPC'])
-        );
 
-        const worksheet = xlsx.utils.json_to_sheet(udata);
+        const worksheet = xlsx.utils.json_to_sheet(jsondata);
         const workbook = xlsx.utils.book_new();
         xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
         const filePath = path.join(__dirname, 'Updated_inventory.xlsx');
@@ -363,7 +345,7 @@ exports.uploadinvdata = async (req, res) => {
     }
     // Load the uploaded Excel file
     const workbook = xlsx.readFile(file.path);
-    const sheetName = workbook.SheetNames[0]; // Read first sheet
+    const sheetName = workbook.SheetNames[0]; 
     const sheet = workbook.Sheets[sheetName];
 
     // Convert the sheet to JSON
