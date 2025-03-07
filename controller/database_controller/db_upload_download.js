@@ -110,29 +110,29 @@ exports.downloadInvSheet = async (req, res) => {
         console.log('Download local')
         const prevoos = await Outofstock.find();
         let filteredPrev = [];
-        // for (let prev of prevoos) {
-        //     let autoFetchData = await AutoFetchData.findOne({ 'Input UPC': prev['Input UPC'] });
-        //     if (autoFetchData && autoFetchData['Current Quantity'] > 0) {
-        //         filteredPrev.push(prev);
-        //     }
-        // }
-        // let asinlist = filteredPrev.map((f) => f.ASIN)
-        // await Outofstock.deleteMany({ ASIN: { $in: asinlist } });
+        for (let prev of prevoos) {
+            let autoFetchData = await AutoFetchData.findOne({ 'Input UPC': prev['Input UPC'] });
+            if (autoFetchData && autoFetchData['Current Quantity'] > 0) {
+                filteredPrev.push(prev);
+            }
+        }
+        let asinlist = filteredPrev.map((f) => f.ASIN)
+        await Outofstock.deleteMany({ ASIN: { $in: asinlist } });
 
-        // // ----------remove product which is out of stock from 1 month-------
-        // let excludeproduct = prevoos.filter((p) => getDateDifference(p.Date))
-        // let exclude = []
-        // for (let o of excludeproduct) {
-        //     let product = await Exclude.findOne({ ASIN: o.ASIN });
-        //     if (!product) {
-        //         exclude.push(o);
-        //     }
-        // }
-        // let newd = exclude.map(obj => {
-        //     delete obj._id;
-        //     return obj;
-        // });
-        // await Exclude.insertMany(newd)
+        // ----------remove product which is out of stock from 1 month-------
+        let excludeproduct = prevoos.filter((p) => getDateDifference(p.Date))
+        let exclude = []
+        for (let o of excludeproduct) {
+            let product = await Exclude.findOne({ ASIN: o.ASIN });
+            if (!product) {
+                exclude.push(o);
+            }
+        }
+        let newd = exclude.map(obj => {
+            delete obj._id;
+            return obj;
+        });
+        await Exclude.insertMany(newd)
         // -------------- save new out of stock data-----
         const data = await AutoFetchData.find();
         let outofstock = data.filter((d) => d['Current Quantity'] == 0);
@@ -349,7 +349,8 @@ exports.uploadforcheck = async (req, res) => {
 exports.uploadinvdata = async (req, res) => {
     let backupdata = await AutoFetchData.find();
     if (backupdata.length > 0) {
-        const backup = new Backup({ data: backupdata, length: backupdata.length });
+        let account = backupdata[0].SKU.includes('BJ')? 'Bijak' : backupdata[0].SKU.includes('RC')? 'Rcube': backupdata[0].SKU.includes('ZL')? 'Zenith' : backupdata[0].SKU.includes('OM')? 'Om' : null
+        const backup = new Backup({ data: backupdata, length: backupdata.length, account:account });
         await backup.save();
     }
     await InvProduct.deleteMany();
@@ -395,7 +396,8 @@ exports.uploadinvdata = async (req, res) => {
 exports.uploadinvdata2 = async (req, res) => {
     let backupdata = await AutoFetchData.find();
     if (backupdata.length > 0) {
-        const backup = new Backup({ data: backupdata, length: backupdata.length });
+        let account = backupdata[0].SKU.includes('BJ')? 'Bijak' : backupdata[0].SKU.includes('RC')? 'Rcube': backupdata[0].SKU.includes('ZL')? 'Zenith' : backupdata[0].SKU.includes('OM')? 'Om' : null
+        const backup = new Backup({ data: backupdata, length: backupdata.length, account:account });
         await backup.save();
     }
     await InvProduct.deleteMany();
