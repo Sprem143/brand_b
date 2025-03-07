@@ -13,6 +13,7 @@ const Om = require('../../model/Masterdata/om');
 const Bijak = require('../../model/Masterdata/bijak');
 const Rcube = require('../../model/Masterdata/rcube')
 const Zenith = require('../../model/Masterdata/zenith')
+const {countDays} = require('../utils')
 
 // -----------send url list of product to home page------
 exports.sendproductsurl = async (req, res) => {
@@ -150,16 +151,7 @@ exports.deletemanyproduct = async (req, res) => {
     }
 }
 
-const countday = (date) => {
-    let [d1, m1, y1] = date.split('/').map(Number)
-    let [d2, m2, y2] = new Date().toLocaleDateString("en-GB").split('/').map(Number)
 
-    let date1 = new Date(y1, m1 - 1, d1)
-    let date2 = new Date(y2, m2 - 1, d2)
-
-    let diff = Math.abs(date2 - date1)
-    return diff / (1000 * 3600 * 24)
-}
 exports.removeoutofstock = async (req, res) => {
     try {
         let excluded = await Exclude.find();
@@ -169,7 +161,7 @@ exports.removeoutofstock = async (req, res) => {
             if (product) {
                 let saveproduct = {
                     'Product link': product['Product link'],
-                    'Current Quantity': `Out of stock from ${countday(e.Date)} days`,
+                    'Current Quantity': `Out of stock from ${countDays(e.Date)} days`,
                     'Product price': 0,
                     'Current Price': product['Product price'],
                     'PriceRange': [],
