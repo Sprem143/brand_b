@@ -6,8 +6,10 @@ const cheerio = require('cheerio');
 const { ZenRows } = require("zenrows");
 const InvUrl1 = require('../model/Inventory_model/invUrl1');
 const apikey = process.env.API_KEY;
-const BrandUrl= require('../model/Brand_model/brandurl')
-const Product= require('../model/Brand_model/products')
+const BrandUrl = require('../model/Brand_model/brandurl')
+const Product = require('../model/Brand_model/products')
+const Outofstock = require('../model/Inventory_model/outofstock')
+
 const generatesku = (upc, color, size) => {
     if (color && size) {
         let a = size.split(' ');
@@ -114,7 +116,7 @@ function extractProductData(html) {
     const upCs = productData?.upCs || [];
     const variations = productData?.variations || [];
     const img = productData?.mainImage.src || null;
-    return { volumePriceBands, upCs, variations,img };
+    return { volumePriceBands, upCs, variations, img };
 }
 
 const boscov = async (url, id) => {
@@ -154,7 +156,7 @@ const boscov = async (url, id) => {
             let oosproduct = [];
             oosdata.forEach((data) => {
                 products.map((p) => {
-                    if (data['Input UPC'] ==  p.upc || data['Input UPC'] ==  'UPC'+p.upc) {
+                    if (data['Input UPC'] == p.upc) {
                         oosproduct.push({
                             'Product link': url,
                             'Current Quantity': p.quantity,
@@ -177,11 +179,26 @@ const boscov = async (url, id) => {
             })
 
             let r = await AutoFetchData.insertMany(oosproduct);
-            await InvUrl1.updateOne(
-                { _id: id },
-                { $pull: { url: url } }
-            )
-            return true;
+            filterData = filterData.filter((f) => f['Current Quantity'] == 0);
+            if (filterData.length > 0) {
+                let ooslist = []
+                for (let i of filterData) {
+                    let isexist = await Outofstock.findOne({ ASIN: i.ASIN })
+                    if (!isexist) {
+                        ooslist.push(i)
+                    }
+                }
+                await Outofstock.insertMany(ooslist)
+            }
+            if (r > 0) {
+                await InvUrl1.updateOne(
+                    { _id: id },
+                    { $pull: { url: url } }
+                )
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return false
         }
@@ -216,20 +233,20 @@ const boscovbrandscraper = async (url, id) => {
             }
             var arr = [lower, middle, upper]
             arr = arr.filter((a, i, self) => self.indexOf(a) == i)
-            const img= productData.img
+            const img = productData.img
 
             let products = productData.variations.map((p) => ({
                 upc: p.upc,
                 price: price,
-                sku:generatesku(p.upc,p.options[0].value,p.options[1].value),
-                pricerange:arr,
+                sku: generatesku(p.upc, p.options[0].value, p.options[1].value),
+                pricerange: arr,
                 quantity: p.inventoryInfo.onlineStockAvailable,
                 color: p.options[0].value,
                 size: p.options[1].value,
-                imgurl:img,
+                imgurl: img,
                 url: url
             }))
-           
+
             await Product.insertMany(products)
             return true;
         } else {
@@ -241,4 +258,118 @@ const boscovbrandscraper = async (url, id) => {
     }
 }
 
-module.exports = { generatesku, fetchAndExtractVariable, fetchProductData, extractProductData, boscov,boscovbrandscraper }
+function fetchoffer(html, couponcode) {
+    try {
+        const $ = cheerio.load(html);
+        let productData = null;
+        $('script').each((index, element) => {
+            const scriptContent = $(element).html();
+            const regex = /window\.product\s*=\s*({[^]*?});/;
+            const match = scriptContent.match(regex);
+            if (match) {
+                try {
+                    productData = JSON.parse(match[1]);
+
+                } catch (error) {
+                    console.error("Failed to parse JSON:", error);
+                }
+            }
+        });
+
+        if (productData) {
+            let eligiblecoupon;
+            if (productData.coupon && Array.isArray(productData.coupon.coupons)) {
+                eligiblecoupon = productData.coupon.coupons.filter((c) => c.couponCode === couponcode && c.isBelkTenderCoupon === false)
+            }
+            if (Array.isArray(eligiblecoupon) && eligiblecoupon.length > 0) {
+                return true;
+            }
+        } else {
+            console.log("Product data not found in HTML.");
+            return false;
+        }
+    } catch (error) {
+        console.error("Error fetching HTML:", error);
+        return false;
+    }
+}
+
+const saveData = async (utagData, url, id, couponcodeprice) => {
+    var datas = await InvProduct.find({ 'Product link': url });
+    const price = utagData.sku_price;
+    const upc = utagData.sku_upc;
+    const quantity = utagData.sku_inventory;
+    const imgurl = utagData.sku_image_url;
+    const onsale = utagData.sku_on_sale;
+    const coupon = utagData.product_promotedCoupon[0]?.cpnDiscount || null;
+
+    const urlProduct = upc.map((u, index) => ({
+        upc: u,
+        price: price[index],
+        quantity: quantity[index],
+        imgurl: imgurl[index],
+        onsale: onsale[index],
+    }));
+    var filterData;
+    if (Array.isArray(datas)) {
+        filterData = datas.map((data) => {
+            const matchedProduct = urlProduct.find((p) => Number(p.upc) === Number(data['Input UPC'].replace('UPC', '')));
+            if (matchedProduct) {
+                return {
+                    'Product link': data['Product link'],
+                    'Current Quantity': matchedProduct.quantity,
+                    'Product price': data['Product price'],
+                    'Current Price': Number(couponcodeprice) > 0 && !matchedProduct.onsale
+                        ? Number(Number(matchedProduct.price * (1 - coupon / 100)).toFixed(2))
+                        : Number(Number(matchedProduct.price).toFixed(2)),
+                    'Image link': matchedProduct.imgurl,
+                    'Input UPC': 'UPC' + matchedProduct.upc,
+                    'Fulfillment': data['Fulfillment'],
+                    'Amazon Fees%': data['Amazon Fees%'],
+                    'Amazon link': data['Amazon link'],
+                    'Shipping Template': data['Shipping Template'],
+                    'Min Profit': data['Min Profit'],
+                    ASIN: data.ASIN,
+                    SKU: data.SKU,
+                };
+            }
+            return null;
+        }).filter(item => item !== null);
+    } else {
+        filterData = []
+    }
+    await AutoFetchData.insertMany(filterData);
+    // -----------save out of stock data------
+    filterData = filterData.filter((f) => f['Current Quantity'] == 0);
+    if (filterData.length > 0) {
+        let ooslist = []
+        for (let i of filterData) {
+            let isexist = await Outofstock.findOne({ ASIN: i.ASIN })
+            if (!isexist) {
+                ooslist.push(i)
+            }
+        }
+        await Outofstock.insertMany(ooslist)
+    }
+    await InvUrl1.updateOne(
+        { _id: id },
+        { $pull: { url: url } }
+    )
+};
+
+const countDays = (date) => {
+    let [d1, m1, y1] = date.split('/').map(Number); // Parse input date (DD/MM/YYYY)
+    
+    let today = new Date(); 
+    let d2 = today.getDate();
+    let m2 = today.getMonth() + 1; // Months are 0-based, so add 1
+    let y2 = today.getFullYear();
+
+    let date1 = new Date(y1, m1 - 1, d1);
+    let date2 = new Date(y2, m2 - 1, d2);
+
+    let diff = Math.abs(date2 - date1); // Difference in milliseconds
+    return Math.floor(diff / (1000 * 60 * 60 * 24)); // Convert to days
+};
+
+module.exports = {countDays, generatesku, saveData, fetchAndExtractVariable, fetchoffer, fetchProductData, extractProductData, boscov, boscovbrandscraper }
