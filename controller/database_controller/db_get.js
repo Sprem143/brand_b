@@ -29,7 +29,7 @@ exports.getdata = async (req, res) => {
 
 exports.getbackup = async (req, res) => {
     try {
-        let list = await Backup.find({}, { name: 1, length:1, _id: 0 });
+        let list = await Backup.find({}, { name: 1, length:1, account:1, _id: 0 });
         let data= await Backup.findOne({name: list[list.length-1].name})
         res.status(200).json({ status: true, list: list, data: data.data })
     } catch (err) {
