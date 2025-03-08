@@ -129,9 +129,7 @@ const boscov = async (url, id) => {
         const html = await request.text();
         if (html) {
             const productData = extractProductData(html);
-
             let oosdata = await InvProduct.find({ 'Product link': url })
-
             if (productData.variations.length == 0) {
                 oosdata = oosdata.map((data) => ({
 
@@ -160,7 +158,6 @@ const boscov = async (url, id) => {
                 return true;
             }
 
-
             var lower, upper, price, middle;
             if (productData.volumePriceBands.length == 0) {
                 price = 0
@@ -176,13 +173,20 @@ const boscov = async (url, id) => {
 
             }
 
+            let products = [];
+            for (let i = 0; i < productData.variations.length; i++) {
+                let p = productData.variations[i];
+                let outofstock = p.inventoryInfo.onlineStockAvailable == 0 ? await getoutofstockdata(p.upc) : null;
 
-            let products = productData.variations.map((p) => ({
-                upc: p.upc,
-                price: price,
-                quantity: p.inventoryInfo.onlineStockAvailable,
-                color: p.options[0].value
-            }))
+                products.push({
+                    upc: p.upc,
+                    price: price,
+                    quantity: p.inventoryInfo.onlineStockAvailable,
+                    color: p.options[0].value,
+                    outofstock: outofstock,
+                });
+            }
+
             var arr = [lower, middle, upper]
             arr = arr.filter((a, i, self) => self.indexOf(a) == i)
             let oosproduct = [];
@@ -205,6 +209,7 @@ const boscov = async (url, id) => {
                             'Min Profit': data['Min Profit'],
                             ASIN: data.ASIN,
                             SKU: data.SKU,
+                            outofstock:p.outofstock
                         })
                     }
                 })
@@ -221,13 +226,13 @@ const boscov = async (url, id) => {
                 }
                 await Outofstock.insertMany(ooslist)
             }
-              if(r.length>0){
+            if (r.length > 0) {
                 await InvUrl1.updateOne(
                     { _id: id },
                     { $pull: { url: url } }
                 )
                 return true;
-              } else {return false}
+            } else { return false }
         } else {
             return false
         }
@@ -332,13 +337,26 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
     const onsale = utagData.sku_on_sale;
     const coupon = utagData.product_promotedCoupon[0]?.cpnDiscount || null;
 
-    const urlProduct = upc.map((u, index) => ({
-        upc: u,
-        price: price[index],
-        quantity: quantity[index],
-        imgurl: imgurl[index],
-        onsale: onsale[index],
-    }));
+    const getoutofstockdata = async (upc) => {
+        let UPC = 'UPC' + upc;
+        let product = await Outofstock.findOne({ 'Input UPC': UPC });
+        return product ? product.Date : null; // Handle case when product is not found
+    };
+
+    const urlProduct = [];
+
+    for (let i = 0; i < upc.length; i++) {
+        const outofstock = quantity[i] == 0 ? await getoutofstockdata(upc[i]) : null;
+
+        urlProduct.push({
+            upc: upc[i],
+            price: price[i],
+            outofstock: outofstock,
+            quantity: quantity[i],
+            imgurl: imgurl[i],
+            onsale: onsale[i],
+        });
+    }
     var filterData;
     if (Array.isArray(datas)) {
         filterData = datas.map((data) => {
@@ -360,6 +378,7 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
                     'Min Profit': data['Min Profit'],
                     ASIN: data.ASIN,
                     SKU: data.SKU,
+                    outofstock: matchedProduct.outofstock
                 };
             }
             return null;
@@ -367,7 +386,7 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
     } else {
         filterData = []
     }
-    let r =await AutoFetchData.insertMany(filterData);
+    let r = await AutoFetchData.insertMany(filterData);
     // -----------save out of stock data------
     filterData = filterData.filter((f) => f['Current Quantity'] == 0);
     if (filterData.length > 0) {
@@ -380,12 +399,12 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
         }
         await Outofstock.insertMany(ooslist)
     }
-   if(r.length>0){
-    await InvUrl1.updateOne(
-        { _id: id },
-        { $pull: { url: url } }
-    )
-   }
+    if (r.length > 0) {
+        await InvUrl1.updateOne(
+            { _id: id },
+            { $pull: { url: url } }
+        )
+    }
 };
 
 const countDays = (date) => {
