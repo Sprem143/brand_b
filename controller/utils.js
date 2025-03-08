@@ -129,7 +129,38 @@ const boscov = async (url, id) => {
         const html = await request.text();
         if (html) {
             const productData = extractProductData(html);
-            // console.log(productData)
+
+            let oosdata = await InvProduct.find({ 'Product link': url })
+
+            if (productData.variations.length == 0) {
+                oosdata = oosdata.map((data) => ({
+
+                    'Product link': url,
+                    'Current Quantity': 0,
+                    'Product price': data['Product price'],
+                    'Current Price': 0,
+                    'PriceRange': arr,
+                    'Image link': '',
+                    'Input UPC': data['Input UPC'],
+                    'Fulfillment': data['Fulfillment'],
+                    'Amazon Fees%': data['Amazon Fees%'],
+                    'Amazon link': data['Amazon link'],
+                    'Shipping Template': data['Shipping Template'],
+                    'Min Profit': data['Min Profit'],
+                    ASIN: data.ASIN,
+                    SKU: data.SKU,
+                }))
+
+                await AutoFetchData.insertMany(oosdata);
+                await Outofstock.insertMany(oosdata);
+                await InvUrl1.updateOne(
+                    { _id: id },
+                    { $pull: { url: url } }
+                )
+                return true;
+            }
+
+
             var lower, upper, price, middle;
             if (productData.volumePriceBands.length == 0) {
                 price = 0
@@ -144,6 +175,8 @@ const boscov = async (url, id) => {
                 price = productData.volumePriceBands[0].price.onSale ? productData.volumePriceBands[0].price.salePrice : productData.volumePriceBands[0].price.price
 
             }
+
+
             let products = productData.variations.map((p) => ({
                 upc: p.upc,
                 price: price,
@@ -152,11 +185,10 @@ const boscov = async (url, id) => {
             }))
             var arr = [lower, middle, upper]
             arr = arr.filter((a, i, self) => self.indexOf(a) == i)
-            let oosdata = await InvProduct.find({ 'Product link': url })
             let oosproduct = [];
             oosdata.forEach((data) => {
                 products.map((p) => {
-                    if (data['Input UPC'] == p.upc) {
+                    if (data['Input UPC'] == 'UPC' + p.upc || data['Input UPC'] == p.upc) {
                         oosproduct.push({
                             'Product link': url,
                             'Current Quantity': p.quantity,
@@ -177,9 +209,8 @@ const boscov = async (url, id) => {
                     }
                 })
             })
-
             let r = await AutoFetchData.insertMany(oosproduct);
-            filterData = filterData.filter((f) => f['Current Quantity'] == 0);
+            let filterData = oosproduct.filter((f) => f['Current Quantity'] == 0);
             if (filterData.length > 0) {
                 let ooslist = []
                 for (let i of filterData) {
@@ -190,15 +221,13 @@ const boscov = async (url, id) => {
                 }
                 await Outofstock.insertMany(ooslist)
             }
-            if (r > 0) {
+              if(r.length>0){
                 await InvUrl1.updateOne(
                     { _id: id },
                     { $pull: { url: url } }
                 )
                 return true;
-            } else {
-                return false;
-            }
+              } else {return false}
         } else {
             return false
         }
@@ -338,7 +367,7 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
     } else {
         filterData = []
     }
-    await AutoFetchData.insertMany(filterData);
+    let r =await AutoFetchData.insertMany(filterData);
     // -----------save out of stock data------
     filterData = filterData.filter((f) => f['Current Quantity'] == 0);
     if (filterData.length > 0) {
@@ -351,16 +380,18 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
         }
         await Outofstock.insertMany(ooslist)
     }
+   if(r.length>0){
     await InvUrl1.updateOne(
         { _id: id },
         { $pull: { url: url } }
     )
+   }
 };
 
 const countDays = (date) => {
     let [d1, m1, y1] = date.split('/').map(Number); // Parse input date (DD/MM/YYYY)
-    
-    let today = new Date(); 
+
+    let today = new Date();
     let d2 = today.getDate();
     let m2 = today.getMonth() + 1; // Months are 0-based, so add 1
     let y2 = today.getFullYear();
@@ -372,4 +403,4 @@ const countDays = (date) => {
     return Math.floor(diff / (1000 * 60 * 60 * 24)); // Convert to days
 };
 
-module.exports = {countDays, generatesku, saveData, fetchAndExtractVariable, fetchoffer, fetchProductData, extractProductData, boscov, boscovbrandscraper }
+module.exports = { countDays, generatesku, saveData, fetchAndExtractVariable, fetchoffer, fetchProductData, extractProductData, boscov, boscovbrandscraper }
