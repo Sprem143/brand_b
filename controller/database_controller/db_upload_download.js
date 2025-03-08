@@ -134,7 +134,9 @@ exports.downloadInvSheet = async (req, res) => {
                 'Shipping Template': item['Shipping Template'],
                 'Min Profit': item['Min Profit'],
                 'Current Price': item['Current Price'],
-                'Current Quantity': item['Current Quantity']
+                'Current Quantity': item['Current Quantity'],
+                'Out Of stock From Date' : item['outofstock']? item['outofstock'] : '',
+                'Out of stock days': item['outofstock']?countDays(item['outofstock']):null
             }
         });
 
