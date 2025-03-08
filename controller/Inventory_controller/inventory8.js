@@ -12,7 +12,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 exports.autofetchdata8 = async (req, res) => {
     try {
         const url = req.body.link;
-        const id = req.body.id
+        const id = req.body.id;
         if (url.startsWith('https://www.boscovs.com')) {
             let result = await boscov(url, id)
             if (result) {
@@ -43,7 +43,8 @@ exports.autofetchdata8 = async (req, res) => {
             if (utagData) {
                 if (utagData.sku_inventory == []) {
                     let oosdata = await InvProduct.find({ 'Product link': url })
-                    let oosproduct = oosdata.map((data) => {
+                    let oosproduct = oosdata.map(async (data) => {
+                        let savedoos = await Outofstock.findOne({ 'Input UPC': data['Input UPC'] })
                         return {
                             'Product link': url,
                             'Current Quantity': 0,
@@ -58,11 +59,11 @@ exports.autofetchdata8 = async (req, res) => {
                             'Min Profit': data['Min Profit'],
                             ASIN: data.ASIN,
                             SKU: data.SKU,
+                            outofstock: savedoos.Date
                         }
                     })
                     await AutoFetchData.insertMany(oosproduct);
                     // ---------------save out of stock product in outofstock model ------------
-                   
                     let ooslist = []
                     for (let i of oosproduct) {
                         let isexist = await Outofstock.findOne({ ASIN: i.ASIN })
@@ -80,7 +81,8 @@ exports.autofetchdata8 = async (req, res) => {
                 if (utagData.sku_inventory.length === 1 && utagData.sku_inventory[0] === '0') {
                     let oosdata = await InvProduct.find({ 'Product link': url })
                     await InvProduct.deleteMany({ 'Product link': url });
-                    const oosproduct = oosdata.map((data) => {
+                    const oosproduct = oosdata.map(async (data) => {
+                        let savedoos = await Outofstock.findOne({ 'Input UPC': data['Input UPC'] })
                         return {
                             'Product link': url,
                             'Current Quantity': 0,
@@ -95,10 +97,11 @@ exports.autofetchdata8 = async (req, res) => {
                             'Min Profit': data['Min Profit'],
                             ASIN: data.ASIN,
                             SKU: data.SKU,
+                            outofstock: savedoos.Date
                         }
                     })
                     await AutoFetchData.insertMany(oosproduct);
-                   
+
                     let ooslist = []
                     for (let i of oosproduct) {
                         let isexist = await Outofstock.findOne({ ASIN: i.ASIN })
@@ -127,3 +130,4 @@ exports.autofetchdata8 = async (req, res) => {
         res.status(500).send({ error: error.message });
     }
 };
+
