@@ -84,3 +84,21 @@ exports.mastersheet = async(req,res)=>{
         res.status(500).json({status:false, msg:err})
     }
 }
+
+exports.pagedetails = async(req,res)=>{
+    try{
+        let uploaded = await InvProduct.countDocuments();
+        let om = await Om.countDocuments()
+        let rc = await Rcube.countDocuments()
+        let zl = await Zenith.countDocuments()
+        let bj = await Bijak.countDocuments()
+        let updated = await AutoFetchData.countDocuments();
+        let outofstock = await Outofstock.countDocuments()
+
+        res.status(200).json({uploaded,om,rc,zl,bj,updated,outofstock})
+       
+    }catch(err){
+        console.log(err);
+        res.status(500).json({status:false, msg:err})
+    }
+}
