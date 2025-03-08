@@ -1,9 +1,7 @@
 const mongoose = require('mongoose')
 
 const autofetchdataSchema = new mongoose.Schema({
-    'Input UPC': {
-        type: String
-    },
+    'Input UPC':String,
     'Vendor URL': String,
     ASIN: String,
     SKU: String,
@@ -20,7 +18,8 @@ const autofetchdataSchema = new mongoose.Schema({
     'Current Price':Number,
     'Coupon Offer Price': Number,
     'Current Quantity':String,
-    'PriceRange':Array
+    'PriceRange':Array,
+    'outofstock':String
 
 });
 
