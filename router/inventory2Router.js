@@ -9,7 +9,7 @@ const { autofetchdata6 } = require('../controller/Inventory_controller/inventory
 const { autofetchdata7 } = require('../controller/Inventory_controller/inventory7');
 const { autofetchdata8 } = require('../controller/Inventory_controller/inventory8');
 const {checkremainingdata,changeprice,removeoutofstock,saveorder,savemasterdata,cleardata} = require('../controller/database_controller/database')
-const {getonebackup,getoutofstock,mastersheet}= require('../controller/database_controller/db_get')
+const {getonebackup,getoutofstock,mastersheet,pagedetails}= require('../controller/database_controller/db_get')
 
 
 router.post('/autofetchdata2', autofetchdata2);
@@ -28,5 +28,6 @@ router.post('/saveorder',saveorder);
 router.get('/savemasterdata',savemasterdata);
 router.get('/mastersheet',mastersheet)
 router.delete('/cleardata',cleardata)
+router.get('/pagedetails',pagedetails)
 
 module.exports = router;
