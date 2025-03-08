@@ -118,20 +118,6 @@ exports.downloadInvSheet = async (req, res) => {
             }
         }
 
-        // // ----------remove product which is out of stock from 1 month-------
-        // let excludeproduct = prevoos.filter((p) => countDays(p.Date))
-        // let exclude = []
-        // for (let o of excludeproduct) {
-        //     let product = await Exclude.findOne({ ASIN: o.ASIN });
-        //     if (!product) {
-        //         exclude.push(o);
-        //     }
-        // }
-        // let newd = exclude.map(obj => {
-        //     delete obj._id;
-        //     return obj;
-        // });
-        // await Exclude.insertMany(newd)
         let updatedproduct = await AutoFetchData.find();
         var jsondata = updatedproduct.map((item) => {
             return {
