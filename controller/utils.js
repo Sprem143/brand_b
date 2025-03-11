@@ -8,7 +8,9 @@ const InvUrl1 = require('../model/Inventory_model/invUrl1');
 const apikey = process.env.API_KEY;
 const BrandUrl = require('../model/Brand_model/brandurl')
 const Product = require('../model/Brand_model/products')
-const Outofstock = require('../model/Inventory_model/outofstock')
+const Outofstock = require('../model/Inventory_model/outofstock');
+const Todayupdate = require('../model/Inventory_model/todayupdate');
+const todayupdate = require('../model/Inventory_model/todayupdate');
 
 const generatesku = (upc, color, size) => {
     if (color && size) {
@@ -209,7 +211,7 @@ const boscov = async (url, id) => {
                             'Min Profit': data['Min Profit'],
                             ASIN: data.ASIN,
                             SKU: data.SKU,
-                            outofstock:p.outofstock
+                            outofstock: p.outofstock
                         })
                     }
                 })
@@ -349,26 +351,33 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
         const outofstock = quantity[i] == 0 ? await getoutofstockdata(upc[i]) : null;
 
         urlProduct.push({
-            upc: upc[i],
-            price: price[i],
+            upc: 'UPC' + upc[i],
+            price: Number(couponcodeprice) > 0 && !onsale[i]
+                ? Number(Number(price[i] * (1 - coupon / 100)).toFixed(2))
+                : Number(Number(price[i]).toFixed(2)),
             outofstock: outofstock,
             quantity: quantity[i],
             imgurl: imgurl[i],
             onsale: onsale[i],
         });
     }
+    console.log(urlProduct.length)
+    const transformedData = urlProduct.reduce((acc, { upc, onsale, ...rest }) => {
+        acc[upc] = rest;
+        return acc;
+    }, {});
+    let todayupdate = new Todayupdate({ products: transformedData, url: url });
+    await todayupdate.save();
     var filterData;
     if (Array.isArray(datas)) {
         filterData = datas.map((data) => {
-            const matchedProduct = urlProduct.find((p) => Number(p.upc) === Number(data['Input UPC'].replace('UPC', '')));
+            const matchedProduct = urlProduct.find((p) =>p.upc === data['Input UPC']);
             if (matchedProduct) {
                 return {
                     'Product link': data['Product link'],
                     'Current Quantity': matchedProduct.quantity,
                     'Product price': data['Product price'],
-                    'Current Price': Number(couponcodeprice) > 0 && !matchedProduct.onsale
-                        ? Number(Number(matchedProduct.price * (1 - coupon / 100)).toFixed(2))
-                        : Number(Number(matchedProduct.price).toFixed(2)),
+                    'Current Price': matchedProduct.price,
                     'Image link': matchedProduct.imgurl,
                     'Input UPC': 'UPC' + matchedProduct.upc,
                     'Fulfillment': data['Fulfillment'],
@@ -387,6 +396,12 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
         filterData = []
     }
     let r = await AutoFetchData.insertMany(filterData);
+    if (r.length > 0) {
+        await InvUrl1.updateOne(
+            { _id: id },
+            { $pull: { url: url } }
+        )
+    }
     // -----------save out of stock data------
     filterData = filterData.filter((f) => f['Current Quantity'] == 0);
     if (filterData.length > 0) {
@@ -399,12 +414,7 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
         }
         await Outofstock.insertMany(ooslist)
     }
-    if (r.length > 0) {
-        await InvUrl1.updateOne(
-            { _id: id },
-            { $pull: { url: url } }
-        )
-    }
+    
 };
 
 const countDays = (date) => {
@@ -422,4 +432,25 @@ const countDays = (date) => {
     return Math.floor(diff / (1000 * 60 * 60 * 24)); // Convert to days
 };
 
-module.exports = { countDays, generatesku, saveData, fetchAndExtractVariable, fetchoffer, fetchProductData, extractProductData, boscov, boscovbrandscraper }
+const skipscrapping = async (url) => {
+    console.log(url)
+    let products = await InvProduct.find({ 'Product link': url })
+    let updatedproducts = await todayupdate.findOne({ url: url })
+    let updated = []
+
+    for (let p of products) {
+        const { _id, ...rest } = p.toObject ? p.toObject() : p; // Convert Mongoose object to plain JS object
+
+        let updatedp = {
+            ...rest,
+            'Current Price': updatedproducts.products[p['Input UPC']].price,
+            'Current Quantity': updatedproducts.products[p['Input UPC']].quantity,
+            'outofstock': updatedproducts.products[p['Input UPC']].outofstock
+        };
+        updated.push(updatedp)
+    }
+    console.log(updated)
+    await AutoFetchData.insertMany(updated)
+}
+
+module.exports = { skipscrapping, countDays, generatesku, saveData, fetchAndExtractVariable, fetchoffer, fetchProductData, extractProductData, boscov, boscovbrandscraper }
