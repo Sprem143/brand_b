@@ -15,7 +15,6 @@ exports.autofetchdata5 = async (req, res) => {
         const id = req.body.id;
         if (url.startsWith('https://www.boscovs.com')) {
             url = url.split('.html')[0]
-            console.log(url)
             let result = await boscov(url, id)
             if (result) {
                 res.status(200).send(true);
