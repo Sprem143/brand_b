@@ -9,7 +9,7 @@ const Outofstock = require('../../model/Inventory_model/outofstock');
 const Todayupdate = require('../../model/Inventory_model/todayupdate');
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-exports.autofetchdata1 = async (req, res) => {
+exports.autofetchdata = async (req, res) => {
     try {
         let url = req.body.link;
         const id = req.body.id;
