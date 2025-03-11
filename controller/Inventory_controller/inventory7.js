@@ -4,21 +4,22 @@ require('dotenv').config();
 const { ZenRows } = require("zenrows");
 const InvUrl1 = require('../../model/Inventory_model/invUrl1');
 const apikey = process.env.API_KEY;
-const { boscov, fetchAndExtractVariable, fetchoffer, saveData } = require('../utils')
+const { boscov, fetchAndExtractVariable, fetchoffer, saveData,skipscrapping } = require('../utils')
 const Outofstock = require('../../model/Inventory_model/outofstock');
-
+const Todayupdate = require('../../model/Inventory_model/todayupdate');
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 exports.autofetchdata7 = async (req, res) => {
     try {
-        const url = req.body.link;
+        let url = req.body.link;
         const id = req.body.id;
         if (url.startsWith('https://www.boscovs.com')) {
+            url = url.split('.html')[0]
             let result = await boscov(url, id)
             if (result) {
                 res.status(200).send(true);
             } else {
-                throw new Error('Invalid URL or URL is not related to belk');
+                throw new Error('Invalid URL or URL is not related to Boscovs');
             }
         } else {
             const client = new ZenRows(apikey);
@@ -63,6 +64,9 @@ exports.autofetchdata7 = async (req, res) => {
                         }
                     })
                     await AutoFetchData.insertMany(oosproduct);
+                    // ----------save product in today update-----
+                    let todayupdate = new Todayupdate({url:url, products:null });
+                       await todayupdate.save()
                     // ---------------save out of stock product in outofstock model ------------
                     let ooslist = []
                     for (let i of oosproduct) {
@@ -101,7 +105,8 @@ exports.autofetchdata7 = async (req, res) => {
                         }
                     })
                     await AutoFetchData.insertMany(oosproduct);
-
+                    let todayupdate = new Todayupdate({url:url, products: null});
+                    await todayupdate.save()
                     let ooslist = []
                     for (let i of oosproduct) {
                         let isexist = await Outofstock.findOne({ ASIN: i.ASIN })
