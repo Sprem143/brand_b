@@ -61,10 +61,14 @@ exports.deletebackup = async (req, res) => {
 exports.getinvlinks = async (req, res) => {
     try {
         let result1 = await InvUrl1.find();
-        let data = await AutoFetchData.find({
+        let sample = await invProduct.aggregate([{$sample:{size:1}}])
+        let acc ;
+        if(sample.length==1){ 
+             acc = sample[0].SKU ? sample[0].SKU.split('-')[0]: null}
+         let data = await AutoFetchData.find({
             $expr: { $gt: [{ $size: "$PriceRange" }, 1] }
         })
-        res.status(200).json({ url: result1[0], data: data })
+        res.status(200).json({ url: result1[0], data: data, account: acc })
     } catch (err) {
         console.log(err);
     }
