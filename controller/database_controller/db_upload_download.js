@@ -14,7 +14,7 @@ const Om = require('../../model/Masterdata/om');
 const Bijak = require('../../model/Masterdata/bijak');
 const Rcube = require('../../model/Masterdata/rcube')
 const Zenith = require('../../model/Masterdata/zenith')
-const {countDays} = require('../utils')
+const {countDays} = require('../utils');
 
 const generatesku = (upc, color, size) => {
     if (color && size) {
@@ -339,7 +339,7 @@ exports.uploadinvdata = async (req, res) => {
     // Convert the sheet to JSON
     const data1 = xlsx.utils.sheet_to_json(sheet);
     const data = data1.filter((d) => d['ASIN'] !== undefined && d['Input UPC'] !== undefined);
-    const modifiedurldata = data.map((d) => ({ ...d, 'Product link': d['Product link'] }))
+    const modifiedurldata = data.map((d) => ({ ...d, 'Product link': d['Product link'].split('.html')[0]+'.html' }))
     if (modifiedurldata.length === 0) {
         return res.status(400).json({ msg: 'No valid data to process' });
     }
@@ -362,6 +362,28 @@ exports.uploadinvdata = async (req, res) => {
             res.status(500).json({ msg: 'Error saving data to MongoDB' });
         });
 };
+
+// -----------upload ---master sheet 
+exports.uploadmastersheet = async (req, res) => {
+    const file = req.file;
+    if (!file) {
+        return res.status(400).send('No file uploaded.');
+    }
+    // Load the uploaded Excel file
+    const workbook = xlsx.readFile(file.path);
+    const sheetName = workbook.SheetNames[0]; 
+    const sheet = workbook.Sheets[sheetName];
+
+    // Convert the sheet to JSON
+    const data1 = xlsx.utils.sheet_to_json(sheet);
+    const data = data1.filter((d) => d['ASIN'] !== undefined && d['Input UPC'] !== undefined);
+    const modifiedurldata = data.map((d) => ({ ...d, 'Product link': d['Product link'] }))
+    if (modifiedurldata.length === 0) {
+        return res.status(400).json({ msg: 'No valid data to process' });
+    }
+
+};
+// ----------------- upload belk source file---------
 
 exports.uploadinvdata2 = async (req, res) => {
     let backupdata = await AutoFetchData.find();
@@ -394,7 +416,9 @@ exports.uploadinvdata2 = async (req, res) => {
         'Product link': d['Vendor URL'].split(".html")[0] + ".html",
         'Fulfillment': d['Fulfillment Shipping'],
         'Amazon Fees%': d['Fees%'],
-        'Shipping Template': d['Shipping template used on AZ']
+        'Shipping Template': d['Shipping template used on AZ'],
+        'Brand Name':d['Brand Name'],
+        'Amazon Title':d['Amazon Title']
     }))
     if (modifiedurldata.length === 0) {
         return res.status(400).json({ msg: 'No valid data to process' });
@@ -493,10 +517,12 @@ exports.uploadinvdata3 = async (req, res) => {
         'SKU': d['Amazon SKU'],
         'Product price': d['Product Cost'],
         'Available Quantity': 0,
-        'Product link': d['Vendor URL'],
+        'Product link': d['Vendor URL'].split('.html')[0]+'.html',
         'Fulfillment': d['Fulfillment Shipping'],
         'Amazon Fees%': d['Fees%'],
-        'Shipping Template': d['Shipping template used on AZ']
+        'Shipping Template': d['Shipping template used on AZ'],
+        'Brand Name':d['Brand Name'],
+        'Amazon Title':d['Amazon Title']
     }))
     if (modifiedurldata.length === 0) {
         console.log("no data")
@@ -521,3 +547,5 @@ exports.uploadinvdata3 = async (req, res) => {
             res.status(500).json({ msg: 'Error saving data to MongoDB' });
         });
 };
+
+
