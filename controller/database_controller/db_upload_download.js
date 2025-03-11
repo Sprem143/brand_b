@@ -339,7 +339,7 @@ exports.uploadinvdata = async (req, res) => {
     // Convert the sheet to JSON
     const data1 = xlsx.utils.sheet_to_json(sheet);
     const data = data1.filter((d) => d['ASIN'] !== undefined && d['Input UPC'] !== undefined);
-    const modifiedurldata = data.map((d) => ({ ...d, 'Product link': d['Product link'].split('.html')[0]+'.html' }))
+    const modifiedurldata = data.map((d) => ({ ...d, 'Product link': d['Product link'].includes('.html)? d['Product link'].split('.html')[0]+'.html' })): d['Product link']
     if (modifiedurldata.length === 0) {
         return res.status(400).json({ msg: 'No valid data to process' });
     }
