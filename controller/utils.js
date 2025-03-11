@@ -216,7 +216,11 @@ const boscov = async (url, id) => {
                     }
                 })
             })
-            let r = await AutoFetchData.insertMany(oosproduct);
+             await AutoFetchData.insertMany(oosproduct);
+            await InvUrl1.updateOne(
+                { _id: id },
+                { $pull: { url: url+'.html' } }
+            )
             let filterData = oosproduct.filter((f) => f['Current Quantity'] == 0);
             if (filterData.length > 0) {
                 let ooslist = []
@@ -228,13 +232,7 @@ const boscov = async (url, id) => {
                 }
                 await Outofstock.insertMany(ooslist)
             }
-            if (r.length > 0) {
-                await InvUrl1.updateOne(
-                    { _id: id },
-                    { $pull: { url: url } }
-                )
                 return true;
-            } else { return false }
         } else {
             return false
         }
