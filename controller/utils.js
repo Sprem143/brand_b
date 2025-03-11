@@ -131,7 +131,7 @@ const boscov = async (url, id) => {
         const html = await request.text();
         if (html) {
             const productData = extractProductData(html);
-            let oosdata = await InvProduct.find({ 'Product link': url })
+            let oosdata = await InvProduct.find({ 'Product link': url+'.html' })
             if (productData.variations.length == 0) {
                 oosdata = oosdata.map((data) => ({
 
@@ -217,6 +217,7 @@ const boscov = async (url, id) => {
                 })
             })
             let r = await AutoFetchData.insertMany(oosproduct);
+            console.log(r)
             let filterData = oosproduct.filter((f) => f['Current Quantity'] == 0);
             if (filterData.length > 0) {
                 let ooslist = []
