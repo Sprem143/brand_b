@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 const { autofetchdata2 } = require('../controller/Inventory_controller/inventory2');
 const { autofetchdata3 } = require('../controller/Inventory_controller/inventory3');
@@ -9,7 +11,8 @@ const { autofetchdata6 } = require('../controller/Inventory_controller/inventory
 const { autofetchdata7 } = require('../controller/Inventory_controller/inventory7');
 const { autofetchdata8 } = require('../controller/Inventory_controller/inventory8');
 const {checkremainingdata,changeprice,removeoutofstock,saveorder,savemasterdata,cleardata} = require('../controller/database_controller/database')
-const {getonebackup,getoutofstock,mastersheet,pagedetails}= require('../controller/database_controller/db_get')
+const {getonebackup,getoutofstock,mastersheet,pagedetails}= require('../controller/database_controller/db_get');
+const {} = require('../controller/database_controller/db_upload_download')
 
 
 router.post('/autofetchdata2', autofetchdata2);
@@ -29,5 +32,6 @@ router.get('/savemasterdata',savemasterdata);
 router.get('/mastersheet',mastersheet)
 router.delete('/cleardata',cleardata)
 router.get('/pagedetails',pagedetails)
+
 
 module.exports = router;
