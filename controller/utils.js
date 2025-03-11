@@ -217,7 +217,6 @@ const boscov = async (url, id) => {
                 })
             })
             let r = await AutoFetchData.insertMany(oosproduct);
-            console.log(r)
             let filterData = oosproduct.filter((f) => f['Current Quantity'] == 0);
             if (filterData.length > 0) {
                 let ooslist = []
@@ -362,7 +361,6 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
             onsale: onsale[i],
         });
     }
-    console.log(urlProduct.length)
     const transformedData = urlProduct.reduce((acc, { upc, onsale, ...rest }) => {
         acc[upc] = rest;
         return acc;
@@ -434,7 +432,6 @@ const countDays = (date) => {
 };
 
 const skipscrapping = async (url) => {
-    console.log(url)
     let products = await InvProduct.find({ 'Product link': url })
     let updatedproducts = await todayupdate.findOne({ url: url })
     let updated = []
@@ -450,7 +447,6 @@ const skipscrapping = async (url) => {
         };
         updated.push(updatedp)
     }
-    console.log(updated)
     await AutoFetchData.insertMany(updated)
 }
 
