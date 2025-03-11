@@ -7,13 +7,15 @@ const autofetchdata = require('../../model/Inventory_model/autofetchdata');
 const BrandPage = require('../../model/Brand_model/brandpage');
 const FinalProduct = require('../../model/Brand_model/finalProduct')
 const Exclude = require('../../model/Inventory_model/Exclude');
-const invProduct = require('../../model/Inventory_model/invProduct');
+const InvProduct = require('../../model/Inventory_model/invProduct');
 const Order = require('../../model/Inventory_model/order');
 const Om = require('../../model/Masterdata/om');
 const Bijak = require('../../model/Masterdata/bijak');
 const Rcube = require('../../model/Masterdata/rcube')
 const Zenith = require('../../model/Masterdata/zenith')
-const {countDays} = require('../utils')
+const { countDays } = require('../utils');
+const Todayupdate = require('../../model/Inventory_model/todayupdate');
+const Outofstock = require('../../model/Inventory_model/outofstock')
 
 // -----------send url list of product to home page------
 exports.sendproductsurl = async (req, res) => {
@@ -61,11 +63,12 @@ exports.deletebackup = async (req, res) => {
 exports.getinvlinks = async (req, res) => {
     try {
         let result1 = await InvUrl1.find();
-        let sample = await invProduct.aggregate([{$sample:{size:1}}])
-        let acc ;
-        if(sample.length==1){ 
-             acc = sample[0].SKU ? sample[0].SKU.split('-')[0]: null}
-         let data = await AutoFetchData.find({
+        let sample = await InvProduct.aggregate([{ $sample: { size: 1 } }])
+        let acc;
+        if (sample.length == 1) {
+            acc = sample[0].SKU ? sample[0].SKU.split('-')[0] : null
+        }
+        let data = await AutoFetchData.find({
             $expr: { $gt: [{ $size: "$PriceRange" }, 1] }
         })
         res.status(200).json({ url: result1[0], data: data, account: acc })
@@ -75,8 +78,8 @@ exports.getinvlinks = async (req, res) => {
 }
 exports.getinvproduct = async (req, res) => {
     try {
-        const invProduct = await AutoFetchData.find();
-        let filterdata = invProduct.filter((product, index, self) => {
+        const InvProduct = await AutoFetchData.find();
+        let filterdata = InvProduct.filter((product, index, self) => {
             index === self.findIndex((p) => p['Input UPC'] === product['Input UPC'])
         })
         res.status(200).send(filterdata)
@@ -155,44 +158,88 @@ exports.deletemanyproduct = async (req, res) => {
     }
 }
 
-
+// ------remove already updated data---------
 exports.removeoutofstock = async (req, res) => {
-    try {
-        let excluded = await Exclude.find();
-        let count = 0
-        for (let e of excluded) {
-            let product = await invProduct.findOneAndDelete({ 'Input UPC': e['Input UPC'] });
-            if (product) {
-                let saveproduct = {
-                    'Product link': product['Product link'],
-                    'Current Quantity': `Out of stock from ${countDays(e.Date)} days`,
-                    'Product price': 0,
-                    'Current Price': product['Product price'],
-                    'PriceRange': [],
-                    'Image link': '',
-                    'Input UPC': product['Input UPC'],
-                    'Fulfillment': product['Fulfillment'],
-                    'Amazon Fees%': product['Amazon Fees%'],
-                    'Amazon link': '',
-                    'Shipping Template': product['Shipping Template'],
-                    'Min Profit': '',
-                    ASIN: product.ASIN,
-                    SKU: product.SKU,
-                }
-                let newpr = new AutoFetchData(saveproduct)
-                await newpr.save()
-                count += 1
+    let tdypr = await Todayupdate.find()
+    if (tdypr.length > 0) {
+        try {
+            let urls = await InvUrl1.findOne();
+            let id = urls._id;
+            let totalNum = 0;
+            if (!urls || !Array.isArray(urls.url)) {
+                return res.status(400).json({ status: false, msg: "No URLs found" });
             }
+            for (let u of urls.url) {
+                let product = await Todayupdate.findOne({ url: u });
 
+                if (product && product.products== null) {
+                    let data = await InvProduct.find({ 'Product link': u });
+                    data = data.map((item) => {
+                        return { ...item._doc };
+                    });
+                    if (Array.isArray(data) && data.length > 0) {
+                        let updated = []
+                        for (let d of data) {
+                            const { _id, ...rest } = item;
+                            let savedoos = await Outofstock.findOne({ 'Input UPC': data['Input UPC'] })
+                            return {
+                                ...rest,
+                                "Current Price": 0,
+                                "Current Quantity": 0,
+                                "outofstock": savedoos.Date
+                            };
+                        }
+                        totalNum += updated.length;
+                        let savedpr = await autofetchdata.insertMany(updated);
+                        if (savedpr.length > 0) {
+                            await InvUrl1.updateOne(
+                                { _id: id },
+                                { $pull: { url: u } }
+                            )
+                        }
+                    }
+                }
 
+                if (product && product.products) {
+                    let data = await InvProduct.find({ 'Product link': u });
+                    data = data.map((item) => {
+                        return { ...item._doc };
+                    });
+                    if (Array.isArray(data) && data.length > 0) {
+                        let updated = data.map((item) => {
+                            const { _id, ...rest } = item;
+                            const upc = item["Input UPC"];
+
+                            return {
+                                ...rest,
+                                "Current Price": product.products[upc]?.price || 0,
+                                "Current Quantity": product.products[upc]?.quantity || 0,
+                                "outofstock": product.products[upc]?.outofstock || false
+                            };
+                        });
+                        totalNum += updated.length;
+                        let savedpr = await autofetchdata.insertMany(updated);
+                        if (savedpr.length > 0) {
+                            await InvUrl1.updateOne(
+                                { _id: id },
+                                { $pull: { url: u } }
+                            )
+                        }
+                    }
+                }
+            }
+            res.status(200).json({ status: true, count: totalNum })
+        } catch (err) {
+            console.error("Error in removeOutOfStock:", err);
+            res.status(500).json({ status: false, msg: err.message || err });
         }
-
-        res.status(500).json({ status: true, count: count })
-    } catch (err) {
-        console.log(err);
-        res.status(500).json({ status: false, msg: err })
+    } else {
+        res.status(404).json({ status: false, msg: "No updated Product found" })
     }
-}
+
+
+};
+
 
 exports.setbulkshippingcost = async (req, res) => {
     try {
@@ -230,12 +277,12 @@ exports.saveorder = async (req, res) => {
 }
 
 // -----------master data saving ----------------
-function fetchupc(sku){
-    let[a,b,c]= sku.split('-')
+function fetchupc(sku) {
+    let [a, b, c] = sku.split('-')
 }
 exports.savemasterdata = async (req, res) => {
     try {
-        let products = await invProduct.find();
+        let products = await InvProduct.find();
         let size = 0;
         if (products.length > 0 && products[0]['SKU'].includes('RC')) {
             let productlist = []
@@ -247,7 +294,7 @@ exports.savemasterdata = async (req, res) => {
                         find = 1;
                     }
                 }
-              find==0?productlist.push({ASIN : p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2]}): null
+                find == 0 ? productlist.push({...p}) : null
             }
             size = productlist.length
             await Rcube.insertMany(productlist)
@@ -262,7 +309,7 @@ exports.savemasterdata = async (req, res) => {
                         find = 1;
                     }
                 }
-              find==0?productlist.push({ASIN : p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2]}): null
+                find == 0 ? productlist.push({ ASIN: p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2] }) : null
             }
             size = productlist.length
             await Zenith.insertMany(productlist)
@@ -277,7 +324,7 @@ exports.savemasterdata = async (req, res) => {
                         find = 1;
                     }
                 }
-              find==0?productlist.push({ASIN : p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2]}): null
+                find == 0 ? productlist.push({ ASIN: p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2] }) : null
             }
             size = productlist.length
             await Bijak.insertMany(productlist)
@@ -292,13 +339,12 @@ exports.savemasterdata = async (req, res) => {
                         find = 1;
                     }
                 }
-              find==0?productlist.push({ASIN : p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2]}): null
+                find == 0 ? productlist.push({ ASIN: p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2] }) : null
             }
             size = productlist.length
             await Om.insertMany(productlist)
         }
-        console.log('completed')
-        console.log(size)
+
         res.status(200).json({ status: true, size: size })
     } catch (err) {
         console.log(err);
@@ -306,13 +352,13 @@ exports.savemasterdata = async (req, res) => {
     }
 }
 
-exports.cleardata= async(req,res)=>{
-    try{
-           await Rcube.deleteMany()
-           await Bijak.deleteMany()
-           await Om.deleteMany()
-           await Zenith.deleteMany()
-    }catch(err){
+exports.cleardata = async (req, res) => {
+    try {
+        await Rcube.deleteMany()
+        await Bijak.deleteMany()
+        await Om.deleteMany()
+        await Zenith.deleteMany()
+    } catch (err) {
         console.log(err)
     }
 }
