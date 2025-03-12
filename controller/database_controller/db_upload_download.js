@@ -51,8 +51,28 @@ const generatesku = (upc, color, size) => {
 exports.downloadfinalSheet = async (req, res) => {
     try {
 
-        let data = await FinalProduct.find();
+        let productlist = await FinalProduct.find();
+        let rc = await Rcube.find({}, { 'Input UPC': 1, _id: 0 })
+        rc = rc.map((r) => r['Input UPC'])
 
+        let zl = await Zenith.find({}, { 'Input UPC': 1, _id: 0 })
+        zl = zl.map((r) => r['Input UPC'])
+
+        let om = await Om.find({}, { 'Input UPC': 1, _id: 0 })
+        om = om.map((r) => r['Input UPC'])
+
+        let bj = await Bijak.find({}, { 'Input UPC': 1, _id: 0 })
+        bj = bj.map((r) => r['Input UPC'])
+        let count = 0
+        for (let p of productlist) {
+            if (rc.includes(p.UPC) || zl.includes(p.UPC) || om.includes(p.UPC)|| bj.includes(p.UPC)) {
+                await FinalProduct.findOneAndDelete({ UPC: p.UPC });
+                count += 1;
+            }
+        }
+        console.log(count)
+        let data = await FinalProduct.find();
+        
 
         if (data.length > 0) {
             res.status(200).json({ status: true, data: data })
