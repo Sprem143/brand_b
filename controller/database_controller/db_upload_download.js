@@ -52,6 +52,8 @@ exports.downloadfinalSheet = async (req, res) => {
     try {
 
         let data = await FinalProduct.find();
+
+
         if (data.length > 0) {
             res.status(200).json({ status: true, data: data })
         } else {
@@ -496,20 +498,20 @@ exports.deletedata = async (req, res) => {
 exports.downloadProductExcel = async (req, res) => {
     try {
         let productlist = await Product.find();
-        let rc = await Rcube.find({}, { UPC: 1, _id: 0 })
-        rc = rc.map((r) => r.UPC)
+        let rc = await Rcube.find({}, { 'Input UPC': 1, _id: 0 })
+        rc = rc.map((r) => r['Input UPC'])
 
-        let zl = await Zenith.find({}, { UPC: 1, _id: 0 })
-        zl = zl.map((r) => r.UPC)
+        let zl = await Zenith.find({}, { 'Input UPC': 1, _id: 0 })
+        zl = zl.map((r) => r['Input UPC'])
 
-        let om = await Om.find({}, { UPC: 1, _id: 0 })
-        om = om.map((r) => r.UPC)
+        let om = await Om.find({}, { 'Input UPC': 1, _id: 0 })
+        om = om.map((r) => r['Input UPC'])
 
-        let bj = await Bijak.find({}, { UPC: 1, _id: 0 })
-        bj = bj.map((r) => r.UPC)
+        let bj = await Bijak.find({}, { 'Input UPC': 1, _id: 0 })
+        bj = bj.map((r) => r['Input UPC'])
         let count = 0
         for (let p of productlist) {
-            if (rc.includes(p.upc) || zl.includes(p.upc) || om.includes(p.upc) || bj.includes(p.upc)) {
+            if (rc.includes(`UPC${p.upc}`) || zl.includes(`UPC${p.upc}`) || om.includes(`UPC${p.upc}`) || bj.includes(`UPC${p.upc}`)) {
                 await Product.findOneAndDelete({ upc: p.upc });
                 count += 1;
             }
