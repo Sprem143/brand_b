@@ -359,7 +359,6 @@ const saveData = async (utagData, url, id, couponcodeprice) => {
             onsale: onsale[i],
         });
     }
-    console.log(urlProduct)
     const transformedData = urlProduct.reduce((acc, { upc, onsale, ...rest }) => {
         acc[upc] = rest;
         return acc;
