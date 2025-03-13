@@ -300,19 +300,21 @@ exports.savemasterdata = async (req, res) => {
             await Rcube.insertMany(productlist)
 
         } else if (products.length > 0 && products[0]['SKU'].includes('ZL')) {
-            let productlist = []
-            let data = await Zenith.find();
-            for (let p of products) {
-                let find = 0;
-                for (let d of data) {
-                    if (d.ASIN == p.ASIN) {
-                        find = 1;
-                    }
-                }
-                find == 0 ? productlist.push({ ASIN: p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2] }) : null
-            }
-            size = productlist.length
-            await Zenith.insertMany(productlist)
+            await Zenith.deleteMany();
+            
+            // let productlist = []
+            // let data = await Zenith.find();
+            // for (let p of products) {
+            //     let find = 0;
+            //     for (let d of data) {
+            //         if (d.ASIN == p.ASIN) {
+            //             find = 1;
+            //         }
+            //     }
+            //     find == 0 ? productlist.push({ ASIN: p.ASIN, SKU: p.SKU, UPC: p.SKU.split('-')[2] }) : null
+            // }
+            // size = productlist.length
+            // await Zenith.insertMany(productlist)
 
         } else if (products.length > 0 && products[0]['SKU'].includes('BJ')) {
             let productlist = []
