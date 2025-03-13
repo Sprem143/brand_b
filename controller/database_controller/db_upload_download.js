@@ -133,42 +133,40 @@ function getDateDifference(date1) {
 
 exports.downloadInvSheet = async (req, res) => {
     try {
-        // let prevoos = await Outofstock.find({}, { ASIN: 1, _id: 0 });
-        // prevoos = prevoos.map(p => p.ASIN)
-        // const data = await AutoFetchData.find({ 'Current Quantity': { $gt: 0 } })
-        // let updated = data.map(d => d.ASIN)
+        let prevoos = await Outofstock.find({}, { ASIN: 1, _id: 0 });
+        prevoos = prevoos.map(p => p.ASIN)
+        const data = await AutoFetchData.find({ 'Current Quantity': { $gt: 0 } })
+        let updated = data.map(d => d.ASIN)
 
-        // for (let p of prevoos) {
-        //     if (updated.includes(p)) {
-        //         await Outofstock.findOneAndDelete({ ASIN: p })
-        //     }
-        // }
+        for (let p of prevoos) {
+            if (updated.includes(p)) {
+                await Outofstock.findOneAndDelete({ ASIN: p })
+            }
+        }
+           const updatedproduct = await AutoFetchData.find()
+      
+        var jsondata = updatedproduct.map((item) => {
+            return {
+                'Input UPC': item['Input UPC'],
+                ASIN: item['ASIN'],
+                'Amazon link': item['Amazon link'],
+                SKU: item['SKU'],
+                'Image link': item['Image link'],
+                'Available Quantity': item['Available Quantity'],
+                'Product price': item['Product price'],
+                'Product link': item['Product link'],
+                'Fulfillment': item['Fulfillment'],
+                'Amazon Fees%': item['Amazon Fees%'],
+                'Shipping Template': item['Shipping Template'],
+                'Min Profit': item['Min Profit'],
+                'Current Price': item['Current Price'],
+                'Current Quantity': item['Current Quantity'],
+                'Out Of stock From Date': item['outofstock'] ? item['outofstock'] : '',
+                'Out of stock days': item['outofstock'] ? countDays(item['outofstock']) : null
+            }
+        });
 
-        let updatedproduct = await InvUrl1.find();
-        updatedproduct = updatedproduct._doc
-        console.log(updatedproduct)
-        // var jsondata = updatedproduct.map((item) => {
-        //     return {
-        //         'Input UPC': item['Input UPC'],
-        //         ASIN: item['ASIN'],
-        //         'Amazon link': item['Amazon link'],
-        //         SKU: item['SKU'],
-        //         'Image link': item['Image link'],
-        //         'Available Quantity': item['Available Quantity'],
-        //         'Product price': item['Product price'],
-        //         'Product link': item['Product link'],
-        //         'Fulfillment': item['Fulfillment'],
-        //         'Amazon Fees%': item['Amazon Fees%'],
-        //         'Shipping Template': item['Shipping Template'],
-        //         'Min Profit': item['Min Profit'],
-        //         'Current Price': item['Current Price'],
-        //         'Current Quantity': item['Current Quantity'],
-        //         'Out Of stock From Date': item['outofstock'] ? item['outofstock'] : '',
-        //         'Out of stock days': item['outofstock'] ? countDays(item['outofstock']) : null
-        //     }
-        // });
-
-        const worksheet = xlsx.utils.json_to_sheet(updatedproduct);
+        const worksheet = xlsx.utils.json_to_sheet(jsondata);
         const workbook = xlsx.utils.book_new();
         xlsx.utils.book_append_sheet(workbook, worksheet, "Products");
         const filePath = path.join(__dirname, 'Updated_inventory.xlsx');
