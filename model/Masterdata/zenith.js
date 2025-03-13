@@ -7,8 +7,8 @@ const dataSchema = new mongoose.Schema({
     'Brand Name':String,
     'Amazon Title':String,
     'Product link': String,
-    'Fulfillment':Number,
-    'Shipping Template':Number,
+    'Fulfillment':String,
+    'Shipping Template':String,
     img:String,
     Date: {
         type: String,
