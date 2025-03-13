@@ -52,29 +52,28 @@ const generatesku = (upc, color, size) => {
 exports.downloadfinalSheet = async (req, res) => {
     try {
 
-        let productlist = await FinalProduct.find();
-        let rc = await Rcube.find({}, { 'Input UPC': 1, _id: 0 })
-        console.log(rc[0])
-        rc = rc.map((r) => r['Input UPC'])
-        let zl = await Zenith.find({}, { 'Input UPC': 1, _id: 0 })
-        zl = zl.map((r) => r['Input UPC'])
-        console.log(zl[0])
+        // let productlist = await FinalProduct.find();
 
-        let om = await Om.find({}, { 'Input UPC': 1, _id: 0 })
-        om = om.map((r) => r['Input UPC'])
-        console.log(om[0])
-        console.log(productlist[0])
+        // let rc = await Rcube.find({}, { 'Input UPC': 1, _id: 0 })
+        // rc=  rc.length>0?  rc.map((r) => r['Input UPC']):[]
 
-        let bj = await Bijak.find({}, { 'Input UPC': 1, _id: 0 })
-        bj = bj.map((r) => r['Input UPC'])
-        let count = 0
-        for (let p of productlist) {
-            if (rc.includes(p.UPC) || zl.includes(p.UPC) || om.includes(p.UPC) || bj.includes(p.UPC)) {
-                await FinalProduct.findOneAndDelete({ UPC: p.UPC });
-                count += 1;
-            }
-        }
-        console.log(count)
+        //   let zl = await Zenith.find({}, { 'Input UPC': 1, _id: 0 })
+        //   zl =zl.length>0? zl.map((r) => r['Input UPC']) : []
+
+        //   let om = await Om.find({}, { 'Input UPC': 1, _id: 0 })
+        //   om =om.length>0? om.map((r) => r['Input UPC']): []
+
+        //   let bj = await Bijak.find({}, { 'Input UPC': 1, _id: 0 })
+        //   bj =bj.length>0? bj.map((r) => r['Input UPC']) : []
+
+        // let count = 0
+        // for (let p of productlist) {
+        //     if (rc.includes(p.UPC) || zl.includes(p.UPC) || om.includes(p.UPC) || bj.includes(p.UPC)) {
+        //         await FinalProduct.findOneAndDelete({ UPC: p.UPC });
+        //         count += 1;
+        //     }
+        // }
+        // console.log(count)
         let data = await FinalProduct.find();
 
 
@@ -295,22 +294,19 @@ exports.uploadforcheck = async (req, res) => {
         const workbook = xlsx.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-         let data = xlsx.utils.sheet_to_json(sheet);
-            data = data.filter(row => row.ASIN !== '-');
+        let data = xlsx.utils.sheet_to_json(sheet);
+        data = data.filter(row => row.ASIN !== '-');
         let jsondata = data.map((d) => {
             return {
-                'Input EAN': d['Input EAN'],
                 'ASIN': d.ASIN,
-                'Amazon link': d['Amazon link'] || `https://www.amazon.com/dp/${d.ASIN}`,
+                'Amazon link': `https://www.amazon.com/dp/${d.ASIN}`,
                 'Belk link': d['Belk link'],
-                'EAN List': d['EAN List'],
                 'Title': d.Title,
-                'Brand': d.Brand,
+                'Brand': d.Brand || '',
                 'Image link': d['Image link'],
-                'UPC': d.UPC || 'UPC' + d['Input EAN'],
+                'UPC': d.UPC,
                 'Fulfillment Shipping': getproducttype(d.Title),
-                'Available Quantity': d['Available Quantity'],
-                'Product name': d['Product name'],
+                'Available Quantity': d['Quantity'],
                 'Product price': d['Product price'],
                 'Size': d['Size'],
                 'Color': d['Color'],
@@ -319,26 +315,88 @@ exports.uploadforcheck = async (req, res) => {
         });
 
         let rc = await Rcube.find({}, { 'Input UPC': 1, _id: 0 })
-        rc = rc.map((r) => r['Input UPC'])
+        rc = rc.length > 0 ? rc.map((r) => r['Input UPC']) : []
+
         let zl = await Zenith.find({}, { 'Input UPC': 1, _id: 0 })
-        zl = zl.map((r) => r['Input UPC'])
+        zl = zl.length > 0 ? zl.map((r) => r['Input UPC']) : []
 
         let om = await Om.find({}, { 'Input UPC': 1, _id: 0 })
-        om = om.map((r) => r['Input UPC'])
+        om = om.length > 0 ? om.map((r) => r['Input UPC']) : []
 
         let bj = await Bijak.find({}, { 'Input UPC': 1, _id: 0 })
-        bj = bj.map((r) => r['Input UPC'])
+        bj = bj.length > 0 ? bj.map((r) => r['Input UPC']) : []
+
         console.log(jsondata.length)
-        jsondata = jsondata.filter((p) => rc.includes(p.UPC) || zl.includes(p.UPC) || om.includes(p.UPC) || bj.includes(p.UPC))
-        console.log(jsondata.length)
-      let result=  await FinalProduct.insertMany(jsondata)
-console.log(result.length)
-       if(result){
-        res.status(200).send("File uploaded successfully")
-       }
+        jsondata = jsondata.filter((p) => !rc.includes(p.UPC) && !zl.includes(p.UPC) && !om.includes(p.UPC) && !bj.includes(p.UPC))
+        let result = await FinalProduct.insertMany(jsondata)
+        console.log(result.length)
+        if (result) {
+            res.status(200).send("File uploaded successfully")
+        }
     } catch (err) {
         console.log(err);
         res.send(err);
+    }
+};
+
+
+exports.uploadforcheck = async (req, res) => {
+    try {
+       
+        const file = req.file;
+                if (!file) {
+                    return res.status(400).send('No file uploaded.');
+                }
+                await FinalProduct.deleteMany();
+                const workbook = xlsx.readFile(file.path);
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                let data = xlsx.utils.sheet_to_json(sheet);
+                data = data.filter(row => row.ASIN !== '-');
+                let jsondata = data.map((d) => {
+                    return {
+                        'ASIN': d.ASIN,
+                        'Amazon link': `https://www.amazon.com/dp/${d.ASIN}`,
+                        'Belk link': d['Belk link'],
+                        'Title': d.Title,
+                        'Brand': d.Brand || '',
+                        'Image link': d['Image link'],
+                        'UPC': d.UPC,
+                        'Fulfillment Shipping': getproducttype(d.Title),
+                        'Available Quantity': d['Quantity'],
+                        'Product price': d['Product price'],
+                        'Size': d['Size'],
+                        'Color': d['Color'],
+                        SKU: d.SKU || generatesku(d['UPC'], d.Color, d.Size),
+                    };
+                });
+
+      console.log(jsondata[0])
+        const [rc, zl, om, bj] = await Promise.all([
+            Rcube.find({}, { 'Input UPC': 1, _id: 0 }).then(d => d.map(r => r['Input UPC'])),
+            Zenith.find({}, { 'Input UPC': 1, _id: 0 }).then(d => d.map(r => r['Input UPC'])),
+            Om.find({}, { 'Input UPC': 1, _id: 0 }).then(d => d.map(r => r['Input UPC'])),
+            Bijak.find({}, { 'Input UPC': 1, _id: 0 }).then(d => d.map(r => r['Input UPC']))
+        ]);
+
+        console.log(`Total records before filtering: ${jsondata.length}`);
+        console.log(rc[0])
+        console.log(zl[0])
+        console.log(om[0])
+        console.log(bj[0])
+        jsondata = jsondata.filter(p => !rc.includes(p.UPC) && !zl.includes(p.UPC) && !om.includes(p.UPC) && !bj.includes(p.UPC));
+
+        console.log(`Total records after filtering: ${jsondata.length}`);
+
+        if (jsondata.length > 0) {
+            await FinalProduct.insertMany(jsondata);
+            return res.status(200).json({ message: "File uploaded successfully", inserted: jsondata.length });
+        } else {
+            return res.status(200).json({ message: "No new records to insert after filtering." });
+        }
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Internal Server Error", details: err.message });
     }
 };
 
@@ -360,7 +418,7 @@ exports.uploadinvdata = async (req, res) => {
     let date = new Date().toLocaleDateString("en-GB");
     await Todayupdate.deleteMany({ Date: { $ne: date } })
 
-    
+
     // Load the uploaded Excel file
     const workbook = xlsx.readFile(file.path);
     const sheetName = workbook.SheetNames[0];
@@ -376,78 +434,163 @@ exports.uploadinvdata = async (req, res) => {
         return res.status(400).json({ msg: 'No valid data to process' });
     }
     await InvProduct.insertMany(modifiedurldata)
-    if (Array.isArray(modifiedurldata)) {
-        if (acc == 'Zenith') {
-            let newproduct = []
-            let zenith = await Zenith.find({}, { 'Input UPC': 1, _id: 0 });
-            zenith = zenith.map(z => z['Input UPC'])
-            for (let m of modifiedurldata) {
-                !zenith.includes(m['Input UPC']) ? newproduct.push(m) : null
-            }
-            await Zenith.insertMany(newproduct)
-            const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
-            if (uniqueUrls.length > 0) {
-                let urls = new InvUrl1({ url: uniqueUrls });
-                await urls.save();
-                res.status(200).json({ status: true, count: modifiedurldata.length });
-            }
-        } else if (acc == 'Rcube') {
-            let newproduct = []
-            let rcube = await Rcube.find({}, { 'Input UPC': 1, _id: 0 });
-            rcube = rcube.map(z => z['Input UPC'])
-            for (let m of modifiedurldata) {
-                !rcube.includes(m['Input UPC']) ? newproduct.push(m) : null
-            }
-            await Rcube.insertMany(newproduct)
-
-            const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
-            if (uniqueUrls.length > 0) {
-                let urls = new InvUrl1({ url: uniqueUrls });
-                await urls.save();
-                res.status(200).json({ status: true, count: modifiedurldata.length });
-            }
-
-        } else if (acc == 'Bijak') {
-            let newproduct = []
-            let bijak = await Bijak.find({}, { 'Input UPC': 1, _id: 0 });
-            bijak = bijak.map(z => z['Input UPC'])
-            for (let m of modifiedurldata) {
-                !bijak.includes(m['Input UPC']) ? newproduct.push(m) : null
-            }
-            await Bijak.insertMany(newproduct)
-
-            const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
-            if (uniqueUrls.length > 0) {
-                let urls = new InvUrl1({ url: uniqueUrls });
-                await urls.save();
-                res.status(200).json({ status: true, count: modifiedurldata.length });
-            }
-
-        } else if (acc == 'Om') {
-            let newproduct = []
-            let om = await Om.find({}, { 'Input UPC': 1, _id: 0 });
-            om = om.map(z => z['Input UPC'])
-            for (let m of modifiedurldata) {
-                !om.includes(m['Input UPC']) ? newproduct.push(m) : null
-            }
-            await Om.insertMany(newproduct)
-            insertedproduct = newproduct.length
-
-            const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
-            if (uniqueUrls.length > 0) {
-                let urls = new InvUrl1({ url: uniqueUrls });
-                await urls.save();
-                res.status(200).json({ status: true, count: modifiedurldata.length });
-            }
-        } else {
-            return res.status(400).json({ msg: 'Brand Name is not clear' });
-        }
+    const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
+    if (uniqueUrls.length > 0) {
+        let urls = new InvUrl1({ url: uniqueUrls });
+        await urls.save();
+        res.status(200).json({ status: true, count: modifiedurldata.length });
     }
+    // if (Array.isArray(modifiedurldata)) {
+    //     if (acc == 'Zenith') {
+    //         let newproduct = []
+    //         let zenith = await Zenith.find({}, { 'Input UPC': 1, _id: 0 });
+    //         zenith = zenith.map(z => z['Input UPC'])
+    //         for (let m of modifiedurldata) {
+    //             !zenith.includes(m['Input UPC']) ? newproduct.push(m) : null
+    //         }
+    //         await Zenith.insertMany(newproduct)
+    //         const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
+    //         if (uniqueUrls.length > 0) {
+    //             let urls = new InvUrl1({ url: uniqueUrls });
+    //             await urls.save();
+    //             res.status(200).json({ status: true, count: modifiedurldata.length });
+    //         }
+    //     } else if (acc == 'Rcube') {
+    //         let newproduct = []
+    //         let rcube = await Rcube.find({}, { 'Input UPC': 1, _id: 0 });
+    //         rcube = rcube.map(z => z['Input UPC'])
+    //         for (let m of modifiedurldata) {
+    //             !rcube.includes(m['Input UPC']) ? newproduct.push(m) : null
+    //         }
+    //         await Rcube.insertMany(newproduct)
 
-    
+    //         const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
+    //         if (uniqueUrls.length > 0) {
+    //             let urls = new InvUrl1({ url: uniqueUrls });
+    //             await urls.save();
+    //             res.status(200).json({ status: true, count: modifiedurldata.length });
+    //         }
+
+    //     } else if (acc == 'Bijak') {
+    //         let newproduct = []
+    //         let bijak = await Bijak.find({}, { 'Input UPC': 1, _id: 0 });
+    //         bijak = bijak.map(z => z['Input UPC'])
+    //         for (let m of modifiedurldata) {
+    //             !bijak.includes(m['Input UPC']) ? newproduct.push(m) : null
+    //         }
+    //         await Bijak.insertMany(newproduct)
+
+    //         const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
+    //         if (uniqueUrls.length > 0) {
+    //             let urls = new InvUrl1({ url: uniqueUrls });
+    //             await urls.save();
+    //             res.status(200).json({ status: true, count: modifiedurldata.length });
+    //         }
+
+    //     } else if (acc == 'Om') {
+    //         let newproduct = []
+    //         let om = await Om.find({}, { 'Input UPC': 1, _id: 0 });
+    //         om = om.map(z => z['Input UPC'])
+    //         for (let m of modifiedurldata) {
+    //             !om.includes(m['Input UPC']) ? newproduct.push(m) : null
+    //         }
+    //         await Om.insertMany(newproduct)
+    //         insertedproduct = newproduct.length
+
+    //         const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
+    //         if (uniqueUrls.length > 0) {
+    //             let urls = new InvUrl1({ url: uniqueUrls });
+    //             await urls.save();
+    //             res.status(200).json({ status: true, count: modifiedurldata.length });
+    //         }
+    //     } else {
+    //         return res.status(400).json({ msg: 'Brand Name is not clear' });
+    //     }
+    // }
+
+
 };
 
 // ----------------- upload belk source file---------
+
+
+// exports.uploadinvdata = async (req, res) => {
+//     try {
+//         const file = req.file;
+//         if (!file) {
+//             return res.status(400).json({ error: 'No file uploaded.' });
+//         }
+//         // Backup AutoFetchData if it exists
+//         const backupdata = await AutoFetchData.find();
+//         let account;
+//         if (backupdata.length > 0) {
+//             const firstSKU = backupdata[0]?.SKU || '';
+//                 account = firstSKU.includes('BJ') ? 'Bijak' :
+//                 firstSKU.includes('RC') ? 'Rcube' :
+//                 firstSKU.includes('ZL') ? 'Zenith' :
+//                 firstSKU.includes('OM') ? 'Om' : null;
+
+//             await new Backup({ data: backupdata, length: backupdata.length, account }).save();
+//         }
+
+//         // Delete old records efficiently
+//         await Promise.all([
+//             InvProduct.deleteMany(),
+//             InvUrl1.deleteMany(),
+//             AutoFetchData.deleteMany(),
+//             Todayupdate.deleteMany({ Date: { $ne: new Date().toLocaleDateString("en-GB") } })
+//         ]);
+
+//         // Read uploaded Excel file
+//         const workbook = xlsx.readFile(file.path);
+//         const sheet = workbook.Sheets[workbook.SheetNames[0]];
+//         const rawData = xlsx.utils.sheet_to_json(sheet);
+
+//         // Filter and preprocess data
+//         const data = rawData
+//             .filter(d => d['ASIN'] && d['Input UPC'])
+//             .map(d => ({
+//                 ...d,
+//                 'Product link': d['Product link']?.includes('.html') ? d['Product link'].split('.html')[0] + '.html' : d['Product link']
+//             }));
+
+//         if (data.length === 0) {
+//             return res.status(400).json({ error: 'No valid data to process' });
+//         }
+
+//         if (!account) {
+//             return res.status(400).json({ error: 'Brand Name is not clear' });
+//         }
+//         await InvProduct.insertMany(data);
+//         // const upcCollection = {
+//         //     'Zenith': Zenith,
+//         //     'Rcube': Rcube,
+//         //     'Bijak': Bijak,
+//         //     'Om': Om
+//         // }[account];
+
+//         // const existingUPCs = new Set(
+//         //     (await upcCollection.find({}, { 'Input UPC': 1, _id: 0 })).map(item => item['Input UPC'])
+//         // );
+
+//         // const newProducts = data.filter(item => !existingUPCs.has(item['Input UPC']));
+
+//         // if (newProducts.length > 0) {
+//         //     await upcCollection.insertMany(newProducts);
+//         // }
+
+//         // Store unique URLs
+//         const uniqueUrls = [...new Set(data.map(item => item['Product link']))];
+//         if (uniqueUrls.length > 0) {
+//             await new InvUrl1({ url: uniqueUrls }).save();
+//         }
+
+//         return res.status(200).json({ status: true, insertedCount: newProducts.length, totalCount: data.length });
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+//     }
+// };
 
 exports.uploadinvdata2 = async (req, res) => {
 
