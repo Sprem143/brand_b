@@ -15,7 +15,8 @@ const Bijak = require('../../model/Masterdata/bijak');
 const Rcube = require('../../model/Masterdata/rcube')
 const Zenith = require('../../model/Masterdata/zenith')
 const { countDays, saveData } = require('../utils');
-const Todayupdate = require('../../model/Inventory_model/todayupdate')
+const Todayupdate = require('../../model/Inventory_model/todayupdate');
+const { json } = require('stream/consumers');
 
 const generatesku = (upc, color, size) => {
     if (color && size) {
@@ -53,26 +54,29 @@ exports.downloadfinalSheet = async (req, res) => {
 
         let productlist = await FinalProduct.find();
         let rc = await Rcube.find({}, { 'Input UPC': 1, _id: 0 })
+        console.log(rc[0])
         rc = rc.map((r) => r['Input UPC'])
-
         let zl = await Zenith.find({}, { 'Input UPC': 1, _id: 0 })
         zl = zl.map((r) => r['Input UPC'])
+        console.log(zl[0])
 
         let om = await Om.find({}, { 'Input UPC': 1, _id: 0 })
         om = om.map((r) => r['Input UPC'])
+        console.log(om[0])
+        console.log(productlist[0])
 
         let bj = await Bijak.find({}, { 'Input UPC': 1, _id: 0 })
         bj = bj.map((r) => r['Input UPC'])
         let count = 0
         for (let p of productlist) {
-            if (rc.includes(p.UPC) || zl.includes(p.UPC) || om.includes(p.UPC)|| bj.includes(p.UPC)) {
+            if (rc.includes(p.UPC) || zl.includes(p.UPC) || om.includes(p.UPC) || bj.includes(p.UPC)) {
                 await FinalProduct.findOneAndDelete({ UPC: p.UPC });
                 count += 1;
             }
         }
         console.log(count)
         let data = await FinalProduct.find();
-        
+
 
         if (data.length > 0) {
             res.status(200).json({ status: true, data: data })
@@ -291,48 +295,47 @@ exports.uploadforcheck = async (req, res) => {
         const workbook = xlsx.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const data = xlsx.utils.sheet_to_json(sheet);
-        const filteredData = data.filter(row => row.ASIN !== '-');
-        const jsondata = filteredData.map((d) => {
+         let data = xlsx.utils.sheet_to_json(sheet);
+            data = data.filter(row => row.ASIN !== '-');
+        let jsondata = data.map((d) => {
             return {
                 'Input EAN': d['Input EAN'],
                 'ASIN': d.ASIN,
                 'Amazon link': d['Amazon link'] || `https://www.amazon.com/dp/${d.ASIN}`,
                 'Belk link': d['Belk link'],
                 'EAN List': d['EAN List'],
-                'MPN': d.MPN,
-                'ISBN': d.ISBN,
                 'Title': d.Title,
                 'Brand': d.Brand,
-                'Dimensions (in)': d['Dimensions (in)'],
-                'Weight (lb)': d['Weight (lb)'],
                 'Image link': d['Image link'],
-                'Lowest Price (USD)': d['Lowest Price (USD)'],
-                'Number of Sellers': d['Number of Sellers'],
-                'BSR': d.BSR,
-                'Product Category': d['Product Category'],
-                'Buy Box Price (USD)': d['Buy Box Price (USD)'],
-                'FBA Fees': d['FBA Fees'],
-                'Fees Breakdown': d['Fees Breakdown'],
-                'Product id': d['Product id'],
                 'UPC': d.UPC || 'UPC' + d['Input EAN'],
                 'Fulfillment Shipping': getproducttype(d.Title),
                 'Available Quantity': d['Available Quantity'],
                 'Product name': d['Product name'],
-                'Product Currency': d['Product Currency'],
                 'Product price': d['Product price'],
-                'Category': d['Category'],
-                'Soldby': d['Soldby'],
                 'Size': d['Size'],
                 'Color': d['Color'],
-                'isCheked': d.isChecked,
                 SKU: d.SKU || generatesku(d['UPC'], d.Color, d.Size),
-                'Any other variations': d['Any other variations'],
             };
         });
-        await FinalProduct.insertMany(jsondata)
 
+        let rc = await Rcube.find({}, { 'Input UPC': 1, _id: 0 })
+        rc = rc.map((r) => r['Input UPC'])
+        let zl = await Zenith.find({}, { 'Input UPC': 1, _id: 0 })
+        zl = zl.map((r) => r['Input UPC'])
+
+        let om = await Om.find({}, { 'Input UPC': 1, _id: 0 })
+        om = om.map((r) => r['Input UPC'])
+
+        let bj = await Bijak.find({}, { 'Input UPC': 1, _id: 0 })
+        bj = bj.map((r) => r['Input UPC'])
+        console.log(jsondata.length)
+        jsondata = jsondata.filter((p) => rc.includes(p.UPC) || zl.includes(p.UPC) || om.includes(p.UPC) || bj.includes(p.UPC))
+        console.log(jsondata.length)
+      let result=  await FinalProduct.insertMany(jsondata)
+console.log(result.length)
+       if(result){
         res.status(200).send("File uploaded successfully")
+       }
     } catch (err) {
         console.log(err);
         res.send(err);
@@ -340,8 +343,12 @@ exports.uploadforcheck = async (req, res) => {
 };
 
 exports.uploadinvdata = async (req, res) => {
-    let backupdata = await AutoFetchData.find();
+    const file = req.file;
+    if (!file) {
+        return res.status(400).send('No file uploaded.');
+    }
 
+    let backupdata = await AutoFetchData.find();
     if (backupdata.length > 0) {
         let account = backupdata[0].SKU.includes('BJ') ? 'Bijak' : backupdata[0].SKU.includes('RC') ? 'Rcube' : backupdata[0].SKU.includes('ZL') ? 'Zenith' : backupdata[0].SKU.includes('OM') ? 'Om' : null
         const backup = new Backup({ data: backupdata, length: backupdata.length, account: account });
@@ -353,10 +360,7 @@ exports.uploadinvdata = async (req, res) => {
     let date = new Date().toLocaleDateString("en-GB");
     await Todayupdate.deleteMany({ Date: { $ne: date } })
 
-    const file = req.file;
-    if (!file) {
-        return res.status(400).send('No file uploaded.');
-    }
+    
     // Load the uploaded Excel file
     const workbook = xlsx.readFile(file.path);
     const sheetName = workbook.SheetNames[0];
@@ -371,6 +375,7 @@ exports.uploadinvdata = async (req, res) => {
     if (modifiedurldata.length === 0) {
         return res.status(400).json({ msg: 'No valid data to process' });
     }
+    await InvProduct.insertMany(modifiedurldata)
     if (Array.isArray(modifiedurldata)) {
         if (acc == 'Zenith') {
             let newproduct = []
@@ -393,7 +398,7 @@ exports.uploadinvdata = async (req, res) => {
             for (let m of modifiedurldata) {
                 !rcube.includes(m['Input UPC']) ? newproduct.push(m) : null
             }
-             await Rcube.insertMany(newproduct)
+            await Rcube.insertMany(newproduct)
 
             const uniqueUrls = modifiedurldata.map(item => item['Product link']).filter((url, index, self) => self.indexOf(url) === index);
             if (uniqueUrls.length > 0) {
@@ -439,68 +444,92 @@ exports.uploadinvdata = async (req, res) => {
         }
     }
 
-    await InvProduct.insertMany(modifiedurldata)
-
+    
 };
 
 // ----------------- upload belk source file---------
 
 exports.uploadinvdata2 = async (req, res) => {
-    let backupdata = await AutoFetchData.find();
-    if (backupdata.length > 0) {
-        let account = backupdata[0].SKU.includes('BJ') ? 'Bijak' : backupdata[0].SKU.includes('RC') ? 'Rcube' : backupdata[0].SKU.includes('ZL') ? 'Zenith' : backupdata[0].SKU.includes('OM') ? 'Om' : null
-        const backup = new Backup({ data: backupdata, length: backupdata.length, account: account });
-        await backup.save();
-    }
-    await InvProduct.deleteMany();
-    await InvUrl1.deleteMany();
-    await AutoFetchData.deleteMany();
+
+    // -----------upload master sheet ---------------
     const file = req.file;
-    if (!file) {
-        return res.status(400).send('No file uploaded.');
-    }
-
     const workbook = xlsx.readFile(file.path);
-    const sheetName = workbook.SheetNames[2]; // Read first sheet
+    const sheetName = workbook.SheetNames[3]; // Read first sheet
     const sheet = workbook.Sheets[sheetName];
-
-    const data1 = xlsx.utils.sheet_to_json(sheet);
-    const data = data1.filter((d) => d['ASIN'] !== undefined && d['upc'] !== undefined);
-    const modifiedurldata = data.map((d) =>
+    let data1 = xlsx.utils.sheet_to_json(sheet);
+    data1 = data1.filter((d) => d.ASIN)
+    const modifiedurldata = data1.map((d) =>
     ({
         'Input UPC': d['For Scrapping use'],
         'ASIN': d.ASIN,
         'SKU': d['Amazon SKU'],
-        'Product price': d['Product Cost'],
-        'Available Quantity': 0,
-        'Product link': d['Vendor URL'].split(".html")[0] + ".html",
+        'Amazon TItle': d['Amazon Title'],
+        'Product link': d['Vendor URL'].includes(".html") ? d['Vendor URL'].split(".html")[0] + ".html" : d['Vendor URL'],
         'Fulfillment': d['Fulfillment Shipping'],
-        'Amazon Fees%': d['Fees%'],
         'Shipping Template': d['Shipping template used on AZ'],
         'Brand Name': d['Brand Name'],
         'Amazon Title': d['Amazon Title']
     }))
-    if (modifiedurldata.length === 0) {
-        return res.status(400).json({ msg: 'No valid data to process' });
-    }
-    InvProduct.insertMany(modifiedurldata)
-        .then(async () => {
-            const uniqueUrls = modifiedurldata
-                .map(item => item['Product link'])
-                .filter((url, index, self) => self.indexOf(url) === index);
+    console.log(modifiedurldata[0])
+    console.log(modifiedurldata.length)
+    await Om.insertMany(modifiedurldata)
+    // ---------------------------------------------
 
-            if (uniqueUrls.length > 0) {
-                let urls = new InvUrl1({ url: uniqueUrls });
-                await urls.save();
-                res.status(200).json({ status: true, msg: 'Data successfully uploaded' });
-            } else {
-                res.status(200).json({ status: false, msg: 'No unique URLs to process' });
-            }
-        })
-        .catch(err => {
-            console.error('Error saving data to MongoDB:', err);
-            res.status(500).json({ msg: 'Error saving data to MongoDB' });
-        });
+    // let backupdata = await AutoFetchData.find();
+    // if (backupdata.length > 0) {
+    //     let account = backupdata[0].SKU.includes('BJ') ? 'Bijak' : backupdata[0].SKU.includes('RC') ? 'Rcube' : backupdata[0].SKU.includes('ZL') ? 'Zenith' : backupdata[0].SKU.includes('OM') ? 'Om' : null
+    //     const backup = new Backup({ data: backupdata, length: backupdata.length, account: account });
+    //     await backup.save();
+    // }
+    // await InvProduct.deleteMany();
+    // await InvUrl1.deleteMany();
+    // await AutoFetchData.deleteMany();
+    // const file = req.file;
+    // if (!file) {
+    //     return res.status(400).send('No file uploaded.');
+    // }
+
+    // const workbook = xlsx.readFile(file.path);
+    // const sheetName = workbook.SheetNames[2]; // Read first sheet
+    // const sheet = workbook.Sheets[sheetName];
+
+    // const data1 = xlsx.utils.sheet_to_json(sheet);
+    // const data = data1.filter((d) => d['ASIN'] !== undefined && d['upc'] !== undefined);
+    // const modifiedurldata = data.map((d) =>
+    // ({
+    //     'Input UPC': d['For Scrapping use'],
+    //     'ASIN': d.ASIN,
+    //     'SKU': d['Amazon SKU'],
+    //     'Product price': d['Product Cost'],
+    //     'Available Quantity': 0,
+    //     'Product link': d['Vendor URL'].split(".html")[0] + ".html",
+    //     'Fulfillment': d['Fulfillment Shipping'],
+    //     'Amazon Fees%': d['Fees%'],
+    //     'Shipping Template': d['Shipping template used on AZ'],
+    //     'Brand Name': d['Brand Name'],
+    //     'Amazon Title': d['Amazon Title']
+    // }))
+    // if (modifiedurldata.length === 0) {
+    //     return res.status(400).json({ msg: 'No valid data to process' });
+    // }
+    // InvProduct.insertMany(modifiedurldata)
+    //     .then(async () => {
+    //         const uniqueUrls = modifiedurldata
+    //             .map(item => item['Product link'])
+    //             .filter((url, index, self) => self.indexOf(url) === index);
+
+    //         if (uniqueUrls.length > 0) {
+    //             let urls = new InvUrl1({ url: uniqueUrls });
+    //             await urls.save();
+    //             res.status(200).json({ status: true, msg: 'Data successfully uploaded' });
+    //         } else {
+    //             res.status(200).json({ status: false, msg: 'No unique URLs to process' });
+    //         }
+    //     })
+    //     .catch(err => {
+    //         console.error('Error saving data to MongoDB:', err);
+    //         res.status(500).json({ msg: 'Error saving data to MongoDB' });
+    //     });
 };
 
 // ---------download final product list for check---
