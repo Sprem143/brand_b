@@ -73,6 +73,9 @@ exports.getoutofstock = async(req,res)=>{
 
 exports.mastersheet = async(req,res)=>{
     try{
+        let account = req.body.account
+
+        // const data = account=='rc'? await Rcube.find() : account == 'bj'?await Bijak.find() :account == 'zl'?await Zenith.find() : account == 'om' ?  await Om.find() : null
       const rc = await Rcube.find();
       const zl = await Zenith.find();
       const om = await Om.find();
